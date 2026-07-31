@@ -1,0 +1,11 @@
+node_modules/
+config.json
+*.blob
+bundle.js
+standalone.js
+icon.ico
+*.exe
+sea-config.json
+out.log
+err.log
+server.log
