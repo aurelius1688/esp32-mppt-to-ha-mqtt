@@ -113,7 +113,7 @@ function resetLoginAttempts(ip) {
 // ── 默认配置（请修改为你自己的设备信息）────────────────
 let CFG = {
   encKey:      null,
-  esp32Url:    'http://192.168.1.100:80',
+  esp32Url:    'http://192.168.1.100:88',
   esp32User:   'admin',
   esp32Pass:   'admin',
   mqttUrl:     'mqtt://192.168.1.100:1883',
