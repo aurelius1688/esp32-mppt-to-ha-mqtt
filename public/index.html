@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MPPT 太阳能控制器</title>
+<link rel="icon" href="icon.ico">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+.header{background:linear-gradient(135deg,#1e293b,#0f172a);padding:16px 24px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.header h1{font-size:20px;font-weight:600;display:flex;align-items:center;gap:10px}
+.header h1 svg{width:28px;height:28px;flex-shrink:0}
+.header-actions{display:flex;gap:8px;align-items:center}
+.header-actions button,.icon-btn{background:none;border:none;color:#94a3b8;cursor:pointer;font-size:18px;padding:6px 10px;border-radius:6px;transition:all .2s}
+.header-actions button:hover{background:#334155;color:#e2e8f0}
+.status-bar{display:flex;gap:16px;font-size:13px;color:#94a3b8;align-items:center}
+.status-bar span{display:flex;align-items:center;gap:4px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dot.online{background:#22c55e;box-shadow:0 0 6px #22c55e}
+.dot.offline{background:#ef4444;box-shadow:0 0 6px #ef4444}
+.container{max-width:1400px;margin:0 auto;padding:16px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+.card{background:#1e293b;border-radius:12px;padding:16px;border:1px solid #334155;transition:border-color .2s}
+.card:hover{border-color:#38bdf8}
+.card .label{font-size:12px;color:#94a3b8;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.card .value{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
+.card .unit{font-size:14px;color:#94a3b8;margin-left:2px;font-weight:400}
+.card.voltage .value{color:#38bdf8}
+.card.current .value{color:#22c55e}
+.card.power .value{color:#f59e0b}
+.card.temperature .value{color:#ef4444}
+.card.energy .value{color:#a78bfa}
+.card.measurement .value{color:#34d399}
+.header-weather{display:flex;align-items:center;gap:10px;margin:0 auto;font-size:15px;color:#e2e8f0;white-space:nowrap;line-height:1}
+.header-weather .weather-icon{color:#fbbf24;font-size:17px}
+.header-weather .weather-text{font-weight:700;color:#fbbf24;font-size:15px}
+.header-weather .weather-temp{font-weight:700;color:#38bdf8;font-size:15px}
+.header-weather .weather-sub{font-size:13px;color:#94a3b8}
+.header-weather.off{opacity:.5}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.chart-box{background:#1e293b;border-radius:12px;padding:16px;border:1px solid #334155}
+.chart-box h3{font-size:14px;color:#94a3b8;margin-bottom:8px}
+.chart-box canvas{max-height:250px}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-bottom:20px}
+.info-card{background:#1e293b;border-radius:12px;padding:16px;border:1px solid #334155}
+.info-card h3{font-size:13px;color:#94a3b8;margin-bottom:8px}
+.info-card table{width:100%;font-size:13px}
+.info-card td{padding:4px 0;border-bottom:1px solid #1e293b;vertical-align:top}
+.info-card td:last-child{text-align:right;color:#38bdf8;font-weight:500}
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:500}
+.badge.ok{background:#166534;color:#86efac}
+.badge.err{background:#7f1d1d;color:#fca5a5}
+.badge.on{background:#1e3a5f;color:#93c5fd}
+.badge.off{background:#3f3f46;color:#a1a1aa}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.controls button{padding:8px 16px;border-radius:8px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px;transition:all .2s}
+.controls button:hover{background:#334155;border-color:#38bdf8}
+.controls button.danger:hover{background:#7f1d1d;border-color:#ef4444}
+.toast{position:fixed;bottom:24px;right:24px;background:#1e293b;border:1px solid #334155;padding:12px 20px;border-radius:8px;font-size:13px;z-index:999;opacity:0;transform:translateY(20px);transition:all .3s}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.success{border-color:#22c55e}
+.toast.error{border-color:#ef4444}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;backdrop-filter:blur(4px)}
+.overlay.open{display:flex;align-items:center;justify-content:center}
+.modal{background:#1e293b;border:1px solid #334155;border-radius:16px;padding:28px;width:90%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.modal h2{font-size:18px;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+.modal h2 i{color:#38bdf8}
+.modal-sm{max-width:380px;text-align:center}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:12px;color:#94a3b8;margin-bottom:4px;font-weight:500}
+.form-group input{width:100%;padding:10px 12px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;font-size:14px;outline:none;transition:border-color .2s}
+.form-group input:focus{border-color:#38bdf8}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-hint{font-size:11px;color:#64748b;margin-top:3px}
+.btn-group{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap}
+.btn-group button{padding:10px 20px;border-radius:8px;border:1px solid #334155;font-size:13px;cursor:pointer;transition:all .2s;font-weight:500}
+.btn-primary{background:#2563eb;border-color:#2563eb;color:#fff}
+.btn-primary:hover{background:#1d4ed8}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-secondary{background:#1e293b;color:#e2e8f0}
+.btn-secondary:hover{background:#334155}
+.btn-success{background:#16a34a;border-color:#16a34a;color:#fff}
+.btn-success:hover{background:#15803d}
+.test-result{font-size:12px;padding:6px 0;display:flex;align-items:center;gap:6px}
+.test-result.ok{color:#22c55e}
+.test-result.fail{color:#ef4444}
+@media(max-width:768px){.charts{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,1fr)}.card .value{font-size:22px}.form-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="header">
+<h1><svg viewBox="0 0 1024 1024" width="28" height="28"><path d="M863.973001 448.017999c-14.591544 0-27.007156 4.303866-36.942846 9.711697a317.190088 317.190088 0 0 0-18.911409-66.733915c6.367801-10.767664 14.655542-21.471329 24.687229-27.279147 35.102903-20.271367 52.270367 6.783788 99.132902-20.287366 25.103216-14.495547 38.254805-61.726071 23.423268-87.437268-103.05278 59.51814-115.996375-6.927784-170.55467 24.575232a76.573607 76.573607 0 0 0-27.023156 26.655167 321.829943 321.829943 0 0 0-49.838442-47.822505c0.095997-12.575607 1.903941-26.127184 7.743758-36.238868 20.271367-35.118903 48.65448-20.287366 75.709634-67.133902 14.495547-25.103216 2.271929-72.573732-23.423268-87.421268-59.502141 103.05278-103.932752 52.014375-135.419768 106.57267a76.733602 76.733602 0 0 0-10.063686 36.830849 316.950095 316.950095 0 0 0-67.021905-16.703478c-6.223806-10.959658-11.487641-23.567264-11.487641-35.278898 0-40.542733 31.999-41.886691 31.999-95.997C575.982001 35.022906 541.647074 0.016 511.984 0.016c0 119.004281-63.998 97.004969-63.998 160.010999 0 14.591544 4.303866 26.991157 9.695697 36.926846-23.167276 3.967876-45.534577 10.23968-66.717915 18.911409-10.767664-6.351802-21.471329-14.639543-27.263148-24.671229-20.271367-35.118903 6.767789-52.270367-20.287366-99.132902C328.917721 66.925909 281.687197 53.77432 255.992 68.605856c59.502141 103.05278-6.927784 116.012375 24.575232 170.57067a76.829599 76.829599 0 0 0 26.655167 27.023155 321.829943 321.829943 0 0 0-47.822505 49.838443c-12.591607-0.095997-26.127184-1.903941-36.238868-7.743758-35.118903-20.287366-20.271367-48.65448-67.133902-75.709634-25.119215-14.495547-72.605731-2.271929-87.437267 23.423268 103.05278 59.502141 51.998375 103.932752 106.55667 135.435767a76.7976 76.7976 0 0 0 36.846848 10.063686 317.910065 317.910065 0 0 0-16.703478 67.021905c-10.975657 6.223806-23.583263 11.487641-35.294897 11.487641-40.542733 0-41.870692-31.999-95.997-31.999-29.007094 0-63.998 34.318928-63.998 63.982001 118.988282 0 97.004969 64.014 159.995 64.014 14.591544 0 27.007156-4.303866 36.942846-9.711697 3.967876 23.167276 10.23968 45.518578 18.895409 66.701916-6.351802 10.767664-14.639543 21.487329-24.687228 27.295147-35.118903 20.271367-52.270367-6.783788-99.132902 20.287366-25.119215 14.479548-38.270804 61.726071-23.423268 87.405268 103.05278-59.502141 115.996375 6.927784 170.570669-24.575232a76.669604 76.669604 0 0 0 27.023156-26.639167 320.997969 320.997969 0 0 0 49.838442 47.806506c-0.111997 12.591607-1.903941 26.127184-7.743758 36.254867-20.271367 35.118903-48.65448 20.271367-75.709634 67.133902-14.495547 25.103216-2.271929 72.589732 23.423268 87.421268 59.502141-103.03678 103.932752-51.998375 135.419768-106.540671a76.845599 76.845599 0 0 0 10.063686-36.862848c21.375332 7.871754 43.758633 13.535577 67.005906 16.703478 6.223806 10.975657 11.503641 23.583263 11.50364 35.310897 0 40.542733-31.999 41.870692-31.999 95.997 0 29.007094 34.318928 63.998 63.998 63.998 0-119.004281 63.998-97.004969 63.998001-159.995 0-14.607544-4.303866-27.007156-9.711697-36.958845a318.246055 318.246055 0 0 0 66.717915-18.89541c10.767664 6.351802 21.487329 14.639543 27.279148 24.687229 20.271367 35.118903-6.767789 52.270367 20.287366 99.132902 14.495547 25.119215 61.726071 38.270804 87.421268 23.439267-59.502141-103.05278 6.927784-116.012375-24.575232-170.570669a76.701603 76.701603 0 0 0-26.655167-27.023156 321.829943 321.829943 0 0 0 47.822505-49.838442c12.575607 0.095997 26.127184 1.903941 36.238868 7.743758 35.118903 20.287366 20.271367 48.65448 67.133902 75.709634 25.119215 14.479548 72.589732 2.271929 87.437267-23.423268-103.05278-59.502141-51.998375-103.932752-106.55667-135.419768a76.605606 76.605606 0 0 0-36.846848-10.063686 318.006062 318.006062 0 0 0 16.703478-67.005906c10.975657-6.239805 23.583263-11.503641 35.294897-11.50364 40.542733 0 41.870692 31.999 95.997 31.999 29.007094 0 63.998-34.334927 63.998-63.998-118.988282 0-96.988969-63.998-159.995-63.998001z" fill="#FFCC66"/></svg> MPPT 太阳能控制器</h1>
+<div class="header-weather" id="headerWeather"></div>
+<div class="header-actions">
+<div class="status-bar">
+<span><span class="dot offline" id="espStatusDot"></span> <span id="espStatus">ESP离线</span></span>
+<span><span class="dot offline" id="mqttDot"></span> <span id="mqttStatus">MQTT离线</span></span>
+<span><i class="far fa-clock"></i> <span id="lastUpdate">-</span></span>
+</div>
+<button onclick="openLogin()" title="设置"><i class="fas fa-cog"></i></button>
+</div>
+</div>
+<div class="container">
+<div class="controls">
+<button onclick="location.reload()"><i class="fas fa-sync-alt"></i> 刷新</button>
+<button onclick="restartESP()" class="danger"><i class="fas fa-power-off"></i> 重启ESP32</button>
+</div>
+<div class="cards" id="mainCards"></div>
+<div class="charts">
+<div class="chart-box"><h3><i class="fas fa-bolt" style="color:#f59e0b"></i> 输入功率</h3><canvas id="chartPower"></canvas></div>
+<div class="chart-box"><h3><i class="fas fa-charging-station" style="color:#a78bfa"></i> 输出功率</h3><canvas id="chartOutPower"></canvas></div>
+</div>
+<div class="charts">
+<div class="chart-box"><h3><i class="fas fa-bolt" style="color:#22c55e"></i> 输入电流</h3><canvas id="chartInCurrent"></canvas></div>
+<div class="chart-box"><h3><i class="fas fa-bolt" style="color:#f472b6"></i> 输出电流</h3><canvas id="chartOutCurrent"></canvas></div>
+</div>
+<div class="info-grid" id="infoGrid"></div>
+</div>
+<div id="toast" class="toast"></div>
+
+<div id="loginOverlay" class="overlay">
+<div class="modal modal-sm">
+<h2><i class="fas fa-lock"></i> 管理员登录</h2>
+<div class="form-group">
+<label>管理密码</label>
+<input id="loginPass" type="password" placeholder="请输入密码" onkeydown="if(event.key==='Enter')doLogin()">
+</div>
+<div id="loginError" style="color:#ef4444;font-size:13px;margin-bottom:8px;display:none"></div>
+<div class="btn-group" style="justify-content:center">
+<button class="btn-primary" id="loginBtn" onclick="doLogin()" style="flex:1"><i class="fas fa-unlock"></i> 登录</button>
+<button class="btn-secondary" onclick="closeLogin()">取消</button>
+</div>
+</div>
+</div>
+
+<div id="settingsOverlay" class="overlay">
+<div class="modal">
+<h2><i class="fas fa-cog"></i> 连接设置</h2>
+<h3 style="font-size:14px;color:#94a3b8;margin-bottom:12px"><i class="fas fa-microchip"></i> ESP32 设备</h3>
+<div class="form-group">
+<label>设备地址</label>
+<input id="cfgEsp32Url" placeholder="http://192.168.1.100:80">
+<div class="form-hint">完整的 URL，包含端口</div>
+</div>
+<div class="form-row">
+<div class="form-group"><label>用户名</label><input id="cfgEsp32User" placeholder="admin"></div>
+<div class="form-group"><label>密码</label><input id="cfgEsp32Pass" type="password" placeholder="admin"></div>
+</div>
+<div class="form-group">
+<button id="testEspBtn" class="btn-secondary" onclick="testESP32()"><i class="fas fa-plug"></i> 测试连接</button>
+<div id="testEspResult" class="test-result"></div>
+</div>
+<h3 style="font-size:14px;color:#94a3b8;margin:20px 0 12px"><i class="fas fa-server"></i> MQTT 服务器</h3>
+<div class="form-group">
+<label>服务器地址</label>
+<input id="cfgMqttUrl" placeholder="mqtt://192.168.1.100:1883">
+<div class="form-hint">mqtt://ip:port 或 mqtts://...</div>
+</div>
+<div class="form-row">
+<div class="form-group"><label>用户名</label><input id="cfgMqttUser" placeholder="mqtt"></div>
+<div class="form-group"><label>密码</label><input id="cfgMqttPass" type="password" placeholder="your_mqtt_password"></div>
+</div>
+<div class="form-group">
+<label>状态主题</label>
+<input id="cfgStateTopic" placeholder="mppt/status">
+<div class="form-hint">HA 读取此主题获取数据</div>
+</div>
+<div class="form-group">
+<label>轮询间隔（毫秒）</label>
+<input id="cfgInterval" type="number" placeholder="3000" min="1000">
+<div class="form-hint">建议 1000-5000ms</div>
+</div>
+<h3 style="font-size:14px;color:#94a3b8;margin:20px 0 12px"><i class="fas fa-cloud-sun"></i> 天气显示</h3>
+<div class="form-group">
+<label>城市代码（中国天气网，可选）</label>
+<input id="cfgWeatherCity" placeholder="留空则不显示天气">
+<div class="form-hint">9 位数字代码，在中国天气网查询你的城市；留空关闭天气显示</div>
+</div>
+<div class="form-group">
+<button id="testMqttBtn" class="btn-secondary" onclick="testMQTT()"><i class="fas fa-plug"></i> 测试连接</button>
+<div id="testMqttResult" class="test-result"></div>
+</div>
+<h3 style="font-size:14px;color:#94a3b8;margin:20px 0 12px"><i class="fas fa-key"></i> 管理密码</h3>
+<div class="form-group">
+<label>修改管理密码（留空不修改）</label>
+<input id="cfgAdminPass" type="password" placeholder="新密码">
+</div>
+<div class="btn-group">
+<button class="btn-primary" onclick="saveSettings()"><i class="fas fa-check"></i> 保存</button>
+<button class="btn-secondary" onclick="closeSettings()">取消</button>
+</div>
+</div>
+</div>
+
+<script>
+const MAX_POINTS = 60;
+let labels = [];
+let authToken = sessionStorage.getItem('mppt_token') || '';
+let tokenTime = parseInt(sessionStorage.getItem('mppt_token_time') || '0');
+function isTokenValid() { return authToken && (Date.now() - tokenTime) < 86400000; }
+
+function initChart(id, label, color) {
+  const ctx = document.getElementById(id).getContext('2d');
+  return new Chart(ctx, {
+    type: 'line',
+    data: { labels: [], datasets: [{ label, data: [], borderColor: color, backgroundColor: color+'20', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
+      scales: {
+        x: { display: true, ticks: { maxTicksLimit: 8, color:'#64748b', maxRotation:0 }, grid: { color:'#1e293b' } },
+        y: { display: true, ticks: { color:'#64748b' }, grid: { color:'#1e293b' } }
+      },
+      plugins: { legend: { labels: { color:'#94a3b8' } } }
+    }
+  });
+}
+
+const chartPower = initChart('chartPower', '输入功率','#f59e0b');
+const chartOutPower = initChart('chartOutPower', '输出功率','#a78bfa');
+const chartInCurrent = initChart('chartInCurrent', '输入电流','#22c55e');
+const chartOutCurrent = initChart('chartOutCurrent', '输出电流','#f472b6');
+
+function weatherIcon(t) {
+  if (!t) return 'fa-cloud';
+  if (t.includes('雷')) return 'fa-cloud-bolt';
+  if (t.includes('晴')) return 'fa-sun';
+  if (t.includes('多云')) return 'fa-cloud-sun';
+  if (t.includes('雨')) return 'fa-cloud-rain';
+  if (t.includes('雪')) return 'fa-snowflake';
+  if (t.includes('雾')) return 'fa-smog';
+  if (t.includes('风')) return 'fa-wind';
+  return 'fa-cloud';
+}
+
+function renderWeather(d) {
+  const el = document.getElementById('headerWeather');
+  const w = d._weather;
+  if (!w || !w.weather) {
+    el.className = 'header-weather off';
+    el.innerHTML = '<i class="fas fa-cloud" style="color:#64748b;font-size:15px"></i><span style="color:#94a3b8">天气暂无</span>';
+    return;
+  }
+  const day = (w.date || '').match(/\((.+?)\)/);
+  const sub = [w.humidity, w.windDir + w.windLevel, [w.time, day ? day[1] : ''].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+  el.className = 'header-weather';
+  el.innerHTML = '<i class="fas ' + weatherIcon(w.weather) + ' weather-icon"></i>' +
+    '<span class="weather-text">' + w.weather + '</span>' +
+    '<span class="weather-temp">' + w.temp + '°C</span>' +
+    '<span class="weather-sub">' + sub + '</span>';
+}
+
+function renderCards(d) {
+  const items = [
+    { key:'vin', label:'输入电压', unit:'V', cls:'voltage', icon:'fa-solar-panel' },
+    { key:'iin', label:'输入电流', unit:'A', cls:'current', icon:'fa-solar-panel' },
+    { key:'pin', label:'输入功率', unit:'W', cls:'power', icon:'fa-solar-panel' },
+    { key:'vout', label:'输出电压', unit:'V', cls:'voltage', icon:'fa-charging-station' },
+    { key:'iout', label:'输出电流', unit:'A', cls:'current', icon:'fa-charging-station' },
+    { key:'pout', label:'输出功率', unit:'W', cls:'power', icon:'fa-charging-station' },
+    { key:'temp', label:'温度', unit:'°C', cls:'temperature', icon:'fa-thermometer-half' },
+    { key:'eff', label:'效率', unit:'%', cls:'measurement', icon:'fa-percent' },
+    { key:'cpu_temp', label:'CPU温度', unit:'°C', cls:'temperature', icon:'fa-microchip' },
+    { key:'loop', label:'循环耗时', unit:'ms', cls:'measurement', icon:'fa-hourglass-half' },
+    { key:'energy_daily', label:'每日发电量', unit:'kWh', cls:'energy', icon:'fa-industry' },
+    { key:'energy_total', label:'累计发电量', unit:'kWh', cls:'energy', icon:'fa-industry' },
+    { key:'fan', label:'风扇', unit:'', cls:'measurement', icon:'fa-fan', fn: v => v===1?'运行':'停止' },
+    { key:'buck', label:'Buck', unit:'', cls:'measurement', icon:'fa-arrow-trend-down', fn: v => v===1?'运行':'停止' },
+  ];
+  const cards = items.map(c => {
+    const v = d[c.key];
+    const display = v===null||v===undefined||v==='' ? '--' : (c.fn ? c.fn(v) : (typeof v==='number'?v.toFixed(2):v));
+    return '<div class="card '+c.cls+'"><div class="label"><i class="fas '+c.icon+'"></i> '+c.label+'</div><div class="value">'+display+'<span class="unit">'+c.unit+'</span></div></div>';
+  });
+  document.getElementById('mainCards').innerHTML = cards.join('');
+}
+
+function renderInfo(d) {
+  const chg = d.err!==0||d.buck===0?'<span class="badge err">充电停止</span>':(d.chg===1?'<span class="badge off">充电完成</span>':'<span class="badge ok">充电中</span>');
+  const fan = d.fan===1?'<span class="badge on"><i class="fas fa-fan"></i> 运行</span>':'<span class="badge off">停止</span>';
+  const buck = d.buck===1?'<span class="badge on">运行中</span>':'<span class="badge off">停止</span>';
+  const err = d.err===0?'<span class="badge ok">正常</span>':'<span class="badge err">错误 #'+d.err+'</span>';
+  document.getElementById('infoGrid').innerHTML =
+    '<div class="info-card"><h3><i class="fas fa-microchip"></i> 系统状态</h3><table>'+
+    '<tr><td>状态</td><td>'+err+'</td></tr>'+
+    '<tr><td>错误信息</td><td>'+(d.err_msg||'-')+'</td></tr>'+
+    '<tr><td>充电状态</td><td>'+chg+'</td></tr>'+
+    '<tr><td>Buck</td><td>'+buck+'</td></tr>'+
+    '<tr><td>风扇</td><td>'+fan+'</td></tr>'+
+    '<tr><td>旁路</td><td>'+(d.bypass===1?'<span class="badge on">打开</span>':'<span class="badge off">关闭</span>')+'</td></tr>'+
+    '<tr><td>重启原因</td><td>'+d.reset+'</td></tr>'+
+    '</table></div>'+
+    '<div class="info-card"><h3><i class="fas fa-chart-line"></i> 电能统计</h3><table>'+
+    '<tr><td>本次累计</td><td>'+(d.wh ? (d.wh/1000).toFixed(3) : '0')+' kWh</td></tr>'+
+    '<tr><td>总累计</td><td>'+(d.twh ? (d.twh/1000).toFixed(3) : '0')+' kWh</td></tr>'+
+    '<tr><td>最大输入电压</td><td>'+(d.vin_max||0).toFixed(2)+' V</td></tr>'+
+    '<tr><td>循环耗时</td><td>'+(d.loop||0).toFixed(2)+' ms</td></tr>'+
+    '<tr><td>CPU温度</td><td>'+(d.cpu_temp||0).toFixed(1)+' °C</td></tr>'+
+    '<tr><td>运行时长</td><td>'+(function(e){if(!e)return'-';var p=e.split(':');var h=parseInt(p[0])||0;var d=Math.floor(h/24);return d>0?d+'天 '+String(h%24).padStart(2,'0')+':'+p[1]+':'+p[2]:e})(d.elapsed)+'</td></tr>'+
+    '</table></div>'+
+    '<div class="info-card"><h3><i class="fas fa-sun"></i> MPPT</h3><table>'+
+    '<tr><td>每日发电量</td><td>'+(d.energy_daily||0).toFixed(6)+' kWh</td></tr>'+
+    '<tr><td>累计发电量</td><td>'+(d.energy_total||0).toFixed(6)+' kWh</td></tr>'+
+    '<tr><td>PWM</td><td>'+(d.pwm||0)+'</td></tr>'+
+    '<tr><td>PPWM</td><td>'+(d.ppwm||0)+'</td></tr>'+
+    '<tr><td>MPPT日志</td><td>'+(d.mppt_log||'-')+'</td></tr>'+
+    '</table></div>';
+}
+
+function updateCharts(d) {
+  const now = new Date().toLocaleTimeString();
+  labels.push(now); if (labels.length > MAX_POINTS) labels.shift();
+  const push = (chart, val) => { chart.data.labels = labels; chart.data.datasets[0].data.push(val); if (chart.data.datasets[0].data.length > MAX_POINTS) chart.data.datasets[0].data.shift(); };
+  push(chartPower, d.pin||0); push(chartOutPower, d.pout||0);
+  push(chartInCurrent, d.iin||0); push(chartOutCurrent, d.iout||0);
+  chartPower.update('none'); chartOutPower.update('none');
+  chartInCurrent.update('none'); chartOutCurrent.update('none');
+}
+
+function connectSSE() {
+  const evtSource = new EventSource('/api/stream');
+  evtSource.onmessage = e => {
+    try {
+      const d = JSON.parse(e.data);
+      if (d._mqttReady !== undefined) {
+        document.getElementById('mqttDot').className = 'dot ' + (d._mqttReady ? 'online' : 'offline');
+        document.getElementById('mqttStatus').textContent = d._mqttReady ? 'MQTT在线' : 'MQTT离线';
+      }
+      if (d._esp32Online !== undefined) {
+        document.getElementById('espStatusDot').className = 'dot ' + (d._esp32Online ? 'online' : 'offline');
+        document.getElementById('espStatus').textContent = d._esp32Online ? 'ESP在线' : 'ESP离线';
+      }
+      if (d._weather !== undefined) renderWeather(d);
+      if (d.vin === undefined) return;
+      renderCards(d); renderInfo(d); updateCharts(d);
+      document.getElementById('lastUpdate').textContent = d.time||new Date().toLocaleString();
+    } catch(e) {}
+  };
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function authFetch(url, options = {}) {
+  options.headers = { ...options.headers, 'Authorization': 'Bearer ' + authToken };
+  return fetch(url, options);
+}
+
+let loginFails = 0;
+const MAX_LOGIN_FAILS = 5;
+
+function openLogin() {
+  if (isTokenValid()) { openSettings(); return; }
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginError').style.display = 'none';
+  document.getElementById('loginBtn').disabled = false;
+  document.getElementById('loginBtn').innerHTML = '<i class="fas fa-unlock"></i> 登录';
+  document.getElementById('loginOverlay').classList.add('open');
+  document.getElementById('loginPass').focus();
+}
+function closeLogin() { document.getElementById('loginOverlay').classList.remove('open'); }
+
+async function doLogin() {
+  const pass = document.getElementById('loginPass').value;
+  if (!pass) { document.getElementById('loginError').textContent = '请输入密码'; document.getElementById('loginError').style.display = 'block'; return; }
+  try {
+    const r = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pass}) });
+    const d = await r.json();
+    document.getElementById('loginError').style.display = 'block';
+    if (d.success) {
+      authToken = d.token; tokenTime = Date.now();
+      sessionStorage.setItem('mppt_token', authToken);
+      sessionStorage.setItem('mppt_token_time', tokenTime.toString());
+      document.getElementById('loginError').style.display = 'none';
+      closeLogin(); openSettings();
+    } else if (d.banned) {
+      document.getElementById('loginBtn').disabled = true;
+      document.getElementById('loginBtn').innerHTML = '<i class="fas fa-ban"></i> 永久封禁';
+      document.getElementById('loginError').textContent = '该IP已被永久封禁，刷新页面也无法解除';
+    } else if (d.locked) {
+      document.getElementById('loginBtn').disabled = true;
+      document.getElementById('loginBtn').innerHTML = '<i class="fas fa-lock"></i> 已锁定(' + (d.waitMinutes || 15) + '分钟)';
+      document.getElementById('loginError').textContent = '密码错误次数过多，请' + (d.waitMinutes || 15) + '分钟后再试';
+    } else {
+      document.getElementById('loginError').textContent = d.error || '密码错误';
+    }
+  } catch(e) { document.getElementById('loginError').textContent = '连接失败'; document.getElementById('loginError').style.display = 'block'; }
+}
+
+async function openSettings() {
+  if (!isTokenValid()) { openLogin(); return; }
+  try {
+    const r = await authFetch('/api/settings');
+    if (r.status === 401) { sessionStorage.removeItem('mppt_token'); authToken = ''; openLogin(); return; }
+    const cfg = await r.json();
+    document.getElementById('cfgEsp32Url').value = cfg.esp32Url;
+    document.getElementById('cfgEsp32User').value = cfg.esp32User;
+    document.getElementById('cfgEsp32Pass').value = '****';
+    document.getElementById('cfgMqttUrl').value = cfg.mqttUrl;
+    document.getElementById('cfgMqttUser').value = cfg.mqttUser;
+    document.getElementById('cfgMqttPass').value = '****';
+    document.getElementById('cfgStateTopic').value = cfg.stateTopic;
+    document.getElementById('cfgInterval').value = cfg.interval;
+    document.getElementById('cfgWeatherCity').value = cfg.weatherCity || '';
+    document.getElementById('cfgAdminPass').value = '';
+    document.getElementById('testEspResult').innerHTML = '';
+    document.getElementById('testMqttResult').innerHTML = '';
+    document.getElementById('settingsOverlay').classList.add('open');
+  } catch { showToast('加载设置失败', 'error'); }
+}
+function closeSettings() { document.getElementById('settingsOverlay').classList.remove('open'); }
+
+async function testESP32() {
+  const btn = document.getElementById('testEspBtn'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 测试中...';
+  const res = document.getElementById('testEspResult');
+  try {
+    const r = await authFetch('/api/test-esp32', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ url: document.getElementById('cfgEsp32Url').value, user: document.getElementById('cfgEsp32User').value,
+        pass: document.getElementById('cfgEsp32Pass').value === '****' ? '' : document.getElementById('cfgEsp32Pass').value }) });
+    const d = await r.json();
+    res.innerHTML = d.success ? '<span class="test-result ok"><i class="fas fa-check-circle"></i> 连接成功 - 输入: '+d.data.vin+'V 输出: '+d.data.vout+'V 功率: '+d.data.pin+'W</span>'
+      : '<span class="test-result fail"><i class="fas fa-times-circle"></i> '+d.error+'</span>';
+  } catch(e) { res.innerHTML = '<span class="test-result fail"><i class="fas fa-times-circle"></i> '+e.message+'</span>'; }
+  btn.disabled = false; btn.innerHTML = '<i class="fas fa-plug"></i> 测试连接';
+}
+
+async function testMQTT() {
+  const btn = document.getElementById('testMqttBtn'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 测试中...';
+  const res = document.getElementById('testMqttResult');
+  try {
+    const r = await authFetch('/api/test-mqtt', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ url: document.getElementById('cfgMqttUrl').value, user: document.getElementById('cfgMqttUser').value,
+        pass: document.getElementById('cfgMqttPass').value === '****' ? '' : document.getElementById('cfgMqttPass').value }) });
+    const d = await r.json();
+    res.innerHTML = d.success ? '<span class="test-result ok"><i class="fas fa-check-circle"></i> MQTT 连接成功</span>'
+      : '<span class="test-result fail"><i class="fas fa-times-circle"></i> '+d.error+'</span>';
+  } catch(e) { res.innerHTML = '<span class="test-result fail"><i class="fas fa-times-circle"></i> '+e.message+'</span>'; }
+  btn.disabled = false; btn.innerHTML = '<i class="fas fa-plug"></i> 测试连接';
+}
+
+async function saveSettings() {
+  const body = {
+    adminPassword: document.getElementById('cfgAdminPass').value || '****',
+    esp32Url: document.getElementById('cfgEsp32Url').value,
+    esp32User: document.getElementById('cfgEsp32User').value,
+    esp32Pass: document.getElementById('cfgEsp32Pass').value,
+    mqttUrl: document.getElementById('cfgMqttUrl').value,
+    mqttUser: document.getElementById('cfgMqttUser').value,
+    mqttPass: document.getElementById('cfgMqttPass').value,
+    stateTopic: document.getElementById('cfgStateTopic').value,
+    interval: parseInt(document.getElementById('cfgInterval').value) || 3000,
+    weatherCity: document.getElementById('cfgWeatherCity').value.trim(),
+  };
+  try {
+    const r = await authFetch('/api/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    if (r.status === 401) { sessionStorage.removeItem('mppt_token'); authToken = ''; closeSettings(); openLogin(); return; }
+    const d = await r.json();
+    if (d.success) { showToast('配置已保存', 'success'); closeSettings(); }
+    else showToast(d.message || '保存失败', 'error');
+  } catch(e) { showToast('保存失败: '+e.message, 'error'); }
+}
+
+function restartESP() {
+  if (!isTokenValid()) { showToast('请先登录', 'error'); openLogin(); return; }
+  if (!confirm('确定重启 ESP32 吗？')) return;
+  authFetch('/api/control', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({type:9, index:0, operation:2}) })
+    .then(r => r.json()).then(d => { showToast(d.success ? '已发送重启命令' : '失败: '+d.error, d.success ? 'success' : 'error'); })
+    .catch(() => showToast('请求失败', 'error'));
+}
+
+connectSSE();
+</script>
+</body>
+</html>
