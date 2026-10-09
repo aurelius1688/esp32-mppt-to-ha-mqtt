@@ -115,7 +115,7 @@ let CFG = {
   esp32Url:    'http://your-ip:88',
   esp32User:   'admin',
   esp32Pass:   'admin',
-  mqttUrl:     'mqtt://ha-ip',
+  mqttUrl:     'mqtt://your-mqtt-server-ip',
   mqttUser:    'mqtt',
   mqttPass:    'your_mqtt_password',
   interval:    3000,
