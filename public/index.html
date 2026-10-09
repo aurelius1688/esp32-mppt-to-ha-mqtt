@@ -156,7 +156,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <h3 style="font-size:14px;color:#94a3b8;margin-bottom:12px"><i class="fas fa-microchip"></i> ESP32 设备</h3>
 <div class="form-group">
 <label>设备地址</label>
-<input id="cfgEsp32Url" placeholder="http://192.168.1.100:80">
+<input id="cfgEsp32Url" placeholder="http://your-ip:88">
 <div class="form-hint">完整的 URL，包含端口</div>
 </div>
 <div class="form-row">
@@ -170,7 +170,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <h3 style="font-size:14px;color:#94a3b8;margin:20px 0 12px"><i class="fas fa-server"></i> MQTT 服务器</h3>
 <div class="form-group">
 <label>服务器地址</label>
-<input id="cfgMqttUrl" placeholder="mqtt://192.168.1.100:1883">
+<input id="cfgMqttUrl" placeholder="mqtt://ha-ip">
 <div class="form-hint">mqtt://ip:port 或 mqtts://...</div>
 </div>
 <div class="form-row">
@@ -278,10 +278,10 @@ function renderCards(d) {
     { key:'eff', label:'效率', unit:'%', cls:'measurement', icon:'fa-percent' },
     { key:'cpu_temp', label:'CPU温度', unit:'°C', cls:'temperature', icon:'fa-microchip' },
     { key:'loop', label:'循环耗时', unit:'ms', cls:'measurement', icon:'fa-hourglass-half' },
-    { key:'energy_daily', label:'每日发电量', unit:'kWh', cls:'energy', icon:'fa-industry' },
+    { key:'energy_daily', label:'今日发电量', unit:'kWh', cls:'energy', icon:'fa-industry' },
+    { key:'energy_yesterday', label:'昨日发电量', unit:'kWh', cls:'energy', icon:'fa-industry' },
     { key:'energy_total', label:'累计发电量', unit:'kWh', cls:'energy', icon:'fa-industry' },
     { key:'fan', label:'风扇', unit:'', cls:'measurement', icon:'fa-fan', fn: v => v===1?'运行':'停止' },
-    { key:'buck', label:'Buck', unit:'', cls:'measurement', icon:'fa-arrow-trend-down', fn: v => v===1?'运行':'停止' },
   ];
   const cards = items.map(c => {
     const v = d[c.key];
@@ -311,12 +311,13 @@ function renderInfo(d) {
     '<tr><td>总累计</td><td>'+(d.twh ? (d.twh/1000).toFixed(3) : '0')+' kWh</td></tr>'+
     '<tr><td>最大输入电压</td><td>'+(d.vin_max||0).toFixed(2)+' V</td></tr>'+
     '<tr><td>循环耗时</td><td>'+(d.loop||0).toFixed(2)+' ms</td></tr>'+
-    '<tr><td>CPU温度</td><td>'+(d.cpu_temp||0).toFixed(1)+' °C</td></tr>'+
     '<tr><td>运行时长</td><td>'+(function(e){if(!e)return'-';var p=e.split(':');var h=parseInt(p[0])||0;var d=Math.floor(h/24);return d>0?d+'天 '+String(h%24).padStart(2,'0')+':'+p[1]+':'+p[2]:e})(d.elapsed)+'</td></tr>'+
     '</table></div>'+
     '<div class="info-card"><h3><i class="fas fa-sun"></i> MPPT</h3><table>'+
-    '<tr><td>每日发电量</td><td>'+(d.energy_daily||0).toFixed(6)+' kWh</td></tr>'+
+    '<tr><td>今日发电量</td><td>'+(d.energy_daily||0).toFixed(6)+' kWh</td></tr>'+
+    '<tr><td>昨日发电量</td><td>'+(d.energy_yesterday||0).toFixed(6)+' kWh</td></tr>'+
     '<tr><td>累计发电量</td><td>'+(d.energy_total||0).toFixed(6)+' kWh</td></tr>'+
+    '<tr><td>CPU温度</td><td>'+(d.cpu_temp||0).toFixed(1)+' °C</td></tr>'+
     '<tr><td>PWM</td><td>'+(d.pwm||0)+'</td></tr>'+
     '<tr><td>PPWM</td><td>'+(d.ppwm||0)+'</td></tr>'+
     '<tr><td>MPPT日志</td><td>'+(d.mppt_log||'-')+'</td></tr>'+
