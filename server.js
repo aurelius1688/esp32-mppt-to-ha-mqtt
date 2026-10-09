@@ -8,7 +8,7 @@ const CONFIG_PATH = path.join(__dirname, 'config.json');
 const PORT = process.env.PORT || 18080;
 
 // ── 加密工具（AES-256-GCM）────────────────────────────
-let ENC_KEY = null; // 持久化加密密钥
+let ENC_KEY = null;
 
 function encrypt(text) {
   if (!text) return text;
@@ -84,7 +84,6 @@ function checkRateLimit(ip) {
   }
   if (r.ban) return { allowed: false, locked: true, banned: true, remaining: 0 };
   if (r.lockedUntil > now) return { allowed: false, locked: true, remaining: 0, waitMinutes: Math.ceil((r.lockedUntil - now) / 60000) };
-  // 锁定期已过，只重置失败计数，保留锁周期
   if (r.fails >= MAX_FAILS) r.fails = 0;
   return { allowed: true, remaining: MAX_FAILS - r.fails };
 }
@@ -110,13 +109,13 @@ function resetLoginAttempts(ip) {
   loginAttempts.delete(ip);
 }
 
-// ── 默认配置（请修改为你自己的设备信息）────────────────
+// ── 默认配置 ─────────────────────────────────────────
 let CFG = {
   encKey:      null,
-  esp32Url:    'http://192.168.1.100:80',
+  esp32Url:    'http://your-ip:88',
   esp32User:   'admin',
   esp32Pass:   'admin',
-  mqttUrl:     'mqtt://192.168.1.100:1883',
+  mqttUrl:     'mqtt://ha-ip',
   mqttUser:    'mqtt',
   mqttPass:    'your_mqtt_password',
   interval:    3000,
@@ -126,34 +125,29 @@ let CFG = {
   adminHash:   null,
   energyTotal: 0,
   energyDaily: 0,
+  energyYesterday: 0,
   energyDate:  '',
 };
 
-// 从 config.json 读取配置
 try {
   const saved = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-  const allowed = ['encKey','esp32Url','esp32User','esp32Pass','mqttUrl','mqttUser','mqttPass','interval','haPrefix','stateTopic','adminHash','energyTotal','energyDaily','energyDate','weatherCity'];
+  const allowed = ['encKey','esp32Url','esp32User','esp32Pass','mqttUrl','mqttUser','mqttPass','interval','haPrefix','stateTopic','adminHash','energyTotal','energyDaily','energyYesterday','energyDate','weatherCity'];
   allowed.forEach(k => { if (saved[k] !== undefined) CFG[k] = saved[k]; });
   console.log('[配置] 已加载 config.json');
 } catch { console.log('[配置] 使用默认配置'); }
 
-// 初始化加密密钥
 ENC_KEY = CFG.encKey ? Buffer.from(CFG.encKey, 'hex') : crypto.randomBytes(32);
 CFG.encKey = ENC_KEY.toString('hex');
 
-// 解密存储的密码
 CFG.esp32Pass = decrypt(CFG.esp32Pass);
 CFG.mqttPass  = decrypt(CFG.mqttPass);
 
-// 初始化管理员密码
 ADMIN_HASH = CFG.adminHash || hashPassword(DEFAULT_PASS);
 
-// 保存配置（密码加密后存储）
 function saveConfig() {
   const saveData = { ...CFG };
   saveData.adminHash = ADMIN_HASH;
   saveData.encKey = ENC_KEY.toString('hex');
-  // 加密存储密码
   if (saveData.esp32Pass && !saveData.esp32Pass.includes(':')) {
     saveData.esp32Pass = encrypt(saveData.esp32Pass);
   }
@@ -163,7 +157,7 @@ function saveConfig() {
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(saveData, null, 2), 'utf8');
 }
 
-// ── CSV 字段定义 ──────────────────────────────────────
+// ── CSV 字段定义 ─────────────────────────────────────
 const SENSORS = [
   { key:'time',      name:'时间',            icon:'mdi:clock-outline' },
   { key:'elapsed',   name:'运行时长',         icon:'mdi:timer-outline' },
@@ -175,7 +169,8 @@ const SENSORS = [
   { key:'bypass',    name:'旁路',            icon:'mdi:pipe' },
   { key:'buck',      name:'Buck状态',        icon:'mdi:power-plug' },
   { key:'fan',       name:'风扇',            icon:'mdi:fan' },
-  { key:'eff',       name:'效率',   unit:'%', icon:'mdi:percent',                    cls:'measurement' },
+  // 修改：新的 UID 和 state_class
+  { key:'eff',       name:'效率',   unit:'%', icon:'mdi:percent', uid:'mppt_eff_v3', cls:'measurement' },
   { key:'wh',        name:'本次电量', unit:'Wh',icon:'mdi:lightning-bolt',           cls:'energy' },
   { key:'twh',       name:'累计电量', unit:'Wh',icon:'mdi:lightning-bolt-outline',   cls:'energy' },
   { key:'temp',      name:'温度',   unit:'°C', icon:'mdi:thermometer',               cls:'temperature' },
@@ -192,7 +187,8 @@ const SENSORS = [
   { key:'vout',      name:'输出电压', unit:'V', icon:'mdi:battery',                   cls:'voltage' },
   { key:'iout',      name:'输出电流', unit:'A', icon:'mdi:current-ac',                cls:'current' },
   { key:'loop',      name:'循环耗时', unit:'ms',icon:'mdi:timer-sand',                cls:'measurement' },
-  { key:'energy_daily',  name:'每日发电量', unit:'kWh', icon:'mdi:solar-power',        cls:'energy' },
+  { key:'energy_daily',  name:'今日发电量', unit:'kWh', icon:'mdi:solar-power',        cls:'energy' },
+  { key:'energy_yesterday', name:'昨日发电量', unit:'kWh', icon:'mdi:solar-power',     cls:'energy' },
   { key:'energy_total',  name:'累计发电量', unit:'kWh', icon:'mdi:solar-power',        cls:'energy' },
 ];
 
@@ -215,6 +211,13 @@ function connectMQTT() {
     console.log('[MQTT] 已连接', CFG.mqttUrl);
     mqttReady = true;
     mqttClient.publish(`${CFG.stateTopic}/online`, 'online', { retain: true });
+    
+    // ── 新增：清除旧版效率传感器的发现消息 ──
+    const legacyUids = ['mppt_eff_v2'];  // 旧版 UID
+    legacyUids.forEach(uid => {
+      mqttClient.publish(`${CFG.haPrefix}/sensor/${uid}/config`, '', { retain: true });
+    });
+    
     publishDiscovery();
   });
   mqttClient.on('error', e => console.error('[MQTT] 错误:', e.message));
@@ -226,15 +229,21 @@ function publishDiscovery() {
   if (!mqttReady) return;
   SENSORS.forEach(s => {
     if (!s.unit) return;
-    const uid = `mppt_${s.key}`;
-    mqttClient.publish(`${CFG.haPrefix}/sensor/${uid}/config`, JSON.stringify({
+    const uid = s.uid || `mppt_${s.key}`;
+    const discovery = {
       name: `MPPT ${s.name}`,
       state_topic: CFG.stateTopic,
       unit_of_measurement: s.unit,
       value_template: `{{ value_json.${s.key} }}`,
-      unique_id: uid, device_class: s.cls, icon: s.icon,
+      unique_id: uid, icon: s.icon,
       device: { identifiers: ['esp32_mppt'], name: 'ESP32 MPPT 控制器', model: 'MPPT V2.1', manufacturer: 'ESP32 MPPT' },
-    }), { retain: true });
+    };
+    if (s.cls === 'measurement') {
+      discovery.state_class = 'measurement';
+    } else if (s.cls) {
+      discovery.device_class = s.cls;
+    }
+    mqttClient.publish(`${CFG.haPrefix}/sensor/${uid}/config`, JSON.stringify(discovery), { retain: true });
   });
   ['chg','bypass','buck','fan'].forEach(k => {
     const uid = `mppt_${k}`;
@@ -270,25 +279,27 @@ function parseCSV(text) {
 }
 
 // ── ESP32 轮询 ───────────────────────────────────────
-// ── ESP32 轮询 ───────────────────────────────────────
 let latestData = {};
 let pollTimer = null;
 let esp32Online = false;
 function todayStr() { return new Date().toDateString(); }
 let energyDaily = (CFG.energyDate === todayStr()) ? (CFG.energyDaily || 0) : 0;
 let energyTotal = CFG.energyTotal || 0;
+let energyYesterday = CFG.energyYesterday || 0;
 let lastDay = new Date().getDate();
 let energySaveTimer = null;
 
 function checkDayReset() {
   const now = new Date();
   if (now.getDate() !== lastDay) {
+    energyYesterday = energyDaily;
+    CFG.energyYesterday = energyYesterday;
     energyDaily = 0;
     lastDay = now.getDate();
     CFG.energyDaily = 0;
     CFG.energyDate = todayStr();
     saveConfig();
-    console.log('[电量] 新的一天，重置每日发电量');
+    console.log('[电量] 新的一天，昨日发电量: ' + (energyYesterday/1000).toFixed(3) + ' kWh，重置今日发电量');
   }
 }
 
@@ -312,7 +323,10 @@ async function fetchESP32() {
       energyTotal += pout * dt_h;
     }
     data.energy_daily = parseFloat((energyDaily / 1000).toFixed(6));
+    data.energy_yesterday = parseFloat((energyYesterday / 1000).toFixed(6));
     data.energy_total = parseFloat((energyTotal / 1000).toFixed(6));
+    // 修改：无法计算时设为0，避免null
+    data.eff = (data.pin && data.pin > 0) ? parseFloat((data.pout / data.pin * 100).toFixed(2)) : 0;
     
     latestData = data;
     esp32Online = true;
@@ -332,16 +346,17 @@ function startPolling() {
   energySaveTimer = setInterval(() => {
     CFG.energyTotal = energyTotal;
     CFG.energyDaily = energyDaily;
+    CFG.energyYesterday = energyYesterday;
     CFG.energyDate = todayStr();
     saveConfig();
   }, 300000);
 }
 
-// 退出时立即保存电量，正常关闭不丢数据
 process.on('exit', () => {
   try {
     CFG.energyTotal = energyTotal;
     CFG.energyDaily = energyDaily;
+    CFG.energyYesterday = energyYesterday;
     CFG.energyDate = todayStr();
     saveConfig();
   } catch {}
@@ -354,8 +369,7 @@ function notifyClients(data) {
   sseClients.forEach(res => res.write(`data: ${msg}\n\n`));
 }
 
-// ── 天气（中国气象局/中国天气网 实况接口）──────────────
-// 城市代码不写死在代码中，存于 config.json（weatherCity），留空则不显示天气
+// ── 天气 ─────────────────────────────────────────────
 const WEATHER_INTERVAL = 10 * 60 * 1000;
 let weatherData = null;
 let weatherTimer = null;
@@ -404,7 +418,6 @@ app.use(express.json());
 app.use(express.static('public'));
 app.get('/favicon.ico', (req, res) => res.redirect('/icon.ico'));
 
-// 认证中间件
 function requireAuth(req, res, next) {
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith('Bearer ') || !verifyToken(auth.slice(7))) {
@@ -509,16 +522,12 @@ app.post('/api/settings', requireAuth, (req, res) => {
   saveConfig();
   console.log('[配置] 已更新，重新连接...');
 
-  // 重启 ESP32 轮询
   startPolling();
-  // 天气代码有变化则立即刷新
   if (body.weatherCity !== undefined) startWeather();
 
-  // 如果 MQTT 配置变了，重连
   if (mqttChanged || body.mqttUser || (body.mqttPass && body.mqttPass !== '****')) {
     setTimeout(() => connectMQTT(), 500);
   } else {
-    // 只重新发布发现
     publishDiscovery();
   }
 
