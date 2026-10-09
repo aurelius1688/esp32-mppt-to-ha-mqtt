@@ -112,7 +112,7 @@ function resetLoginAttempts(ip) {
 // ── 默认配置 ─────────────────────────────────────────
 let CFG = {
   encKey:      null,
-  esp32Url:    'http://your-ip:88',
+  esp32Url:    'http://your-esp32-mppt-ip:88',
   esp32User:   'admin',
   esp32Pass:   'admin',
   mqttUrl:     'mqtt://your-mqtt-server-ip',
