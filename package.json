@@ -1,16 +1,23 @@
 {
-  "name": "mppt-mqtt-bridge",
+  "name": "mppt-bridge",
   "version": "1.0.0",
-  "description": "ESP32 MPPT HTTP -> MQTT Bridge + Web Dashboard",
+  "description": "MPPT MQTT Bridge for Windows",
   "main": "server.js",
+  "bin": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "build": "pkg . --targets node18-win-x64 --output mppt-bridge.exe"
+  },
+  "pkg": {
+    "assets": [
+      "public/**/*"
+    ]
   },
   "dependencies": {
-    "basic-auth": "^2.0.1",
     "express": "^4.18.2",
-    "mqtt": "^5.3.0",
-    "rcedit": "^5.0.2",
-    "sharp": "^0.35.3"
+    "mqtt": "^5.10.1"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^5.12.0"
   }
 }
