@@ -1,13 +1,7 @@
-//部分代码改进于lcss
 // ============================================================================
-// MPPT 太阳能控制器 - MQTT 桥接服务 (完美防卡死重启 + 读取硬件原生电量)
-// 核心改进：
-// 1. 电能统计卡片读取硬件：移除后端的强制覆盖，直接显示 ESP32 真实的本次/总累计电量。
-// 2. 彻底修复重启卡死：增加 process.on('SIGINT/SIGTERM') 优雅退出，1秒兜底强杀。
-// 3. 解决 MQTT 无法重连：引入唯一 ClientID，防止 Broker 拒绝连接。
-// 4. 完整硬件解析：恢复读取最大输入电压、循环耗时、MPPT日志等全字段。
+// MPPT 太阳能控制器 - MQTT 桥接服务 (修复 HA 设备类 + 硬件原生电量)
 // ============================================================================
-
+//部分代码改善于lcss
 process.env.TZ = process.env.TZ || 'Asia/Shanghai';
 
 const express = require('express');
@@ -119,7 +113,6 @@ let CFG = {
   interval: 1000, haPrefix: 'homeassistant', stateTopic: 'mppt/status', cmdTopic: 'mppt/cmd/' + crypto.randomBytes(4).toString('hex'),
   restartPayload: crypto.randomBytes(8).toString('hex'), weatherCity: '', csvFormat: 'auto', adminHash: null,
   
-  // 后端积分统计依然保留，用于 HA 和图表，防止硬件清零
   energyTotalWh: 0,
   energyDailyWh: 0,
   energyYesterdayWh: 0,
@@ -172,17 +165,23 @@ function saveConfig() {
 }
 if (firstRun) saveConfig();
 
-// ── HA 自动发现配置 ──
+// ── [修复] HA 自动发现配置：删除了非法的 device_class ──
 const SENSORS = [
   { key:'cpu_temp',  name:'CPU温度', unit:'°C', icon:'mdi:thermometer', cls:'temperature' },
-  { key:'eff',       name:'效率', unit:'%', icon:'mdi:percent', cls:'measurement' },
+  { key:'temp',      name:'温度', unit:'°C', icon:'mdi:thermometer', cls:'temperature' },
+  { key:'eff',       name:'效率', unit:'%', icon:'mdi:percent' }, // 移除 cls
   { key:'pin',       name:'输入功率', unit:'W', icon:'mdi:flash-outline', cls:'power' },
   { key:'vin',       name:'输入电压', unit:'V', icon:'mdi:flash', cls:'voltage' },
   { key:'iin',       name:'输入电流', unit:'A', icon:'mdi:current-ac', cls:'current' },
   { key:'pout',      name:'输出功率', unit:'W', icon:'mdi:flash-outline', cls:'power' },
   { key:'vout',      name:'输出电压', unit:'V', icon:'mdi:battery', cls:'voltage' },
   { key:'iout',      name:'输出电流', unit:'A', icon:'mdi:current-ac', cls:'current' },
-  // HA 中的电量依然使用后端算的，防止掉电清零
+  { key:'loop',      name:'循环耗时', unit:'ms', icon:'mdi:timer-sand' }, // 移除 cls
+  { key:'vin_max',   name:'最大输入电压', unit:'V', icon:'mdi:flash', cls:'voltage' },
+  { key:'pwm',       name:'PWM', unit:'', icon:'mdi:sine-wave' }, // 移除 cls
+  { key:'ppwm',      name:'PPWM', unit:'', icon:'mdi:sine-wave' }, // 移除 cls
+  { key:'wh',        name:'本次电量', unit:'Wh', icon:'mdi:lightning-bolt', cls:'energy' },
+  { key:'twh',       name:'累计电量', unit:'Wh', icon:'mdi:lightning-bolt-outline', cls:'energy' },
   { key:'energy_daily',  name:'每日发电量', unit:'kWh', icon:'mdi:solar-power', cls:'energy', state_cls: 'total' },
   { key:'energy_yesterday', name:'昨日发电量', unit:'kWh', icon:'mdi:solar-power', cls:'energy', state_cls: 'total' },
   { key:'energy_total',  name:'累计发电量', unit:'kWh', icon:'mdi:solar-power', cls:'energy', state_cls: 'total_increasing' },
@@ -235,7 +234,8 @@ function publishDiscovery() {
     mqttClient.publish(`${CFG.haPrefix}/sensor/mppt_${s.key}/config`, JSON.stringify({
       name: `MPPT ${s.name}`, state_topic: CFG.stateTopic, unit_of_measurement: s.unit,
       value_template: `{{ value_json.${s.key} }}`, unique_id: `mppt_${s.key}`,
-      device_class: s.cls, icon: s.icon, state_class: s.state_cls || 'measurement',
+      ...(s.cls ? { device_class: s.cls } : {}), // [修复] 只有在定义了合法 cls 时才下发 device_class
+      icon: s.icon, state_class: s.state_cls || 'measurement',
       ...avail, device: dev
     }), { retain: true });
   });
@@ -253,10 +253,10 @@ function publishDiscovery() {
     name: 'MPPT 重启 ESP32', command_topic: `${CFG.cmdTopic}/restart`, payload_press: CFG.restartPayload,
     unique_id: 'mppt_restart_esp32', device_class: 'restart', icon: 'mdi:restart', ...avail, device: dev
   }), { retain: true });
-  console.log('[MQTT] HA 自动发现已发布');
+  console.log('[MQTT] HA 自动发现已发布（全字段）');
 }
 
-// ── 解析 CSV (完整硬件字段) ──
+// ── 解析 CSV ──
 let csvFormatDetected = 'unknown';
 function num(v) {
   const s = String(v === undefined || v === null ? '' : v).trim();
@@ -412,7 +412,6 @@ async function fetchESP32() {
     const now = Date.now();
     const pout = data.pout || 0;
     
-    // 后端依然在后台默默积分，用于给 HA 和趋势图提供稳定数据
     if (pout > 0) {
       let dt_sec = lastPollTime ? (now - lastPollTime) / 1000 : CFG.interval / 1000;
       dt_sec = Math.min(dt_sec, 60);
@@ -423,8 +422,6 @@ async function fetchESP32() {
     }
     lastPollTime = now;
 
-    // [核心修改] 这里不再强行覆盖 data.wh 和 data.twh，前端电能统计卡片会直接读取硬件原生的 wh(本次) 和 twh(总)。
-    // 只有供图表使用的 energy_daily 等字段使用后端积分数值。
     data.energy_daily = parseFloat((CFG.energyDailyWh / 1000).toFixed(3));
     data.energy_yesterday = parseFloat((CFG.energyYesterdayWh / 1000).toFixed(3));
     data.energy_total = parseFloat((CFG.energyTotalWh / 1000).toFixed(3));
@@ -643,7 +640,7 @@ startWeather();
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`[版本] 服务端 ${BUILD_ID} / 面板 ${UI_BUILD}`);
-  console.log(`\n=== MPPT MQTT Bridge（硬件原生电量读取版）===`);
+  console.log(`\n=== MPPT MQTT Bridge（修复 HA 设备类版）===`);
   console.log(`Web 面板: http://localhost:${PORT}`);
   console.log(`MQTT:     ${CFG.mqttUrl} -> ${CFG.stateTopic}`);
   console.log(`ESP32:    ${CFG.esp32Url}  轮询 ${CFG.interval}ms`);
