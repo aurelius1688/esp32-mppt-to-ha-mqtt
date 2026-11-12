@@ -1,6 +1,7 @@
 # MPPT to HA — ESP32 MPPT MQTT Bridge
 
 将 ESP32 MPPT 太阳能控制器的数据通过 MQTT 接入 Home Assistant，并附带一个功能完整、界面精美的实时 Web 仪表盘。
+<img width="1892" height="921" alt="github-preview" src="https://github.com/user-attachments/assets/38e137b5-dc13-45bd-8ec9-b26c16a5a698" />
 
 ## ✨ 核心功能
 
