@@ -1,7 +1,9 @@
 // ============================================================================
-// MPPT 太阳能控制器 - MQTT 桥接服务 (完美稳定版 + 年度账单)
+// MPPT 太阳能控制器 - MQTT 桥接服务
+// Author: Aurelius1688 (晴若晓溪)
+// Github: https://github.com/aurelius1688
+// Description: 基于初版框架深度重构，包含完整的安全加固、历史数据归档及 HA 自动发现。
 // ============================================================================
-//Edit by Aurelius1688 晴若晓溪 
 process.env.TZ = process.env.TZ || 'Asia/Shanghai';
 
 const express = require('express');
