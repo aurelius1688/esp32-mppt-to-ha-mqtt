@@ -12,6 +12,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="Aurelius1688 晴若晓溪">
+<meta name="description" content="ESP32 MPPT 太阳能控制器实时监控面板">
 <meta name="mppt-ui-build" content="2026-11-13-stable">
 <title>晴若晓溪 MPPT</title>
 <link rel="icon" href="icon.ico">
@@ -414,7 +416,6 @@ html.light .test-result.fail{color:#b91c1c}
       <div class="trend-left">
         <select id="trendDate" class="trend-date" title="选择日期"></select>
         <div class="winseg" id="winSeg" title="选择时间范围">
-          <!-- 默认高亮 1 小时 -->
           <button class="on" data-win="1">1 小时</button>
           <button data-win="6">6 小时</button>
           <button data-win="12">12 小时</button>
@@ -440,7 +441,6 @@ html.light .test-result.fail{color:#b91c1c}
     <h3><i class="fas fa-calendar-alt" style="color:var(--violet)"></i> <span id="monthTitle">近 7 天每日发电量</span></h3>
     <div class="trend-head">
       <div class="trend-left">
-        <!-- 新增：年度账单按钮 -->
         <button class="chip" onclick="openYearlyReport()" style="background:rgba(66,232,198,.15);color:var(--cyan);border-color:var(--cyan);margin-left:0">
           <i class="fas fa-chart-bar"></i> 年度发电账单
         </button>
@@ -682,6 +682,7 @@ const INFO_HTML = [
       '<tr><td>循环耗时</td><td data-k="loop"></td></tr>',
       '<tr><td>运行时长</td><td data-k="elapsed"></td></tr>',
       '<tr><td>设备地址</td><td data-k="addr"></td></tr>',
+      '<tr><td>服务运行时长</td><td data-k="backend_uptime"></td></tr>', // [新增]
     '</table>',
   '</div>',
   '<div class="info-card">',
@@ -737,6 +738,20 @@ function updateInfo(d) {
   setText('loop',    (Number(d.loop)    || 0).toFixed(2) + ' ms');
   setText('elapsed', fmtElapsed(d.elapsed));
   setText('addr',    d._esp32Url ? String(d._esp32Url).replace(/^https?:\/\//,'').replace(/\/$/,'') : '-');
+
+  // [新增] 后端服务运行时长
+  if (d._uptime !== undefined && d._uptime !== null) {
+    const secs = Number(d._uptime);
+    const days = Math.floor(secs / 86400);
+    const hours = Math.floor((secs % 86400) / 3600);
+    const mins = Math.floor((secs % 3600) / 60);
+    let uptimeStr = '';
+    if (days > 0) uptimeStr += days + '天 ';
+    uptimeStr += hours + '小时 ' + mins + '分';
+    setText('backend_uptime', uptimeStr);
+  } else {
+    setText('backend_uptime', '-');
+  }
 
   setText('e_daily', (Number(d.energy_daily) || 0).toFixed(3) + ' kWh');
   setText('e_yesterday', (Number(d.energy_yesterday) || 0).toFixed(3) + ' kWh');
@@ -923,15 +938,24 @@ function drawTrend(k){
     o.push('<line x1="' + f(px) + '" y1="' + f(py) + '" x2="' + f(px) + '" y2="' + B + '" stroke="' + main.color + '" stroke-width="1.6" stroke-dasharray="5 5" opacity=".75"/>');
     o.push('<circle cx="' + f(px) + '" cy="' + f(py) + '" r="6" fill="' + main.color + '" stroke="#fff" stroke-width="2.5"/>');
     const label = '峰值 ' + pk.v.toFixed(main.dec) + ' ' + main.unit + ' · ' + hhmm(pk.h);
-    const bx = Math.min(Math.max(px - 108, L), R - 220), by = Math.max(T + 30, py - 44);
+    // 强制把气泡往上推 60 像素，但不超出顶部边界
+// 水平方向：放在圆点右侧 15px 处，并防止超出右边界
+let bx = px + 15;
+if (bx + 216 > R) bx = px - 216 - 15; // 如果右边放不下，自动切到左边
+bx = Math.max(L + 5, bx); // 防止超出左边界
+
+// 垂直方向：让气泡和圆点垂直居中对齐，并防止超出上下边界
+let by = py - 14;
+if (by < T + 5) by = T + 5;
+if (by + 28 > B) by = B - 28;
     o.push('<rect class="pkbox" x="' + f(bx) + '" y="' + f(by) + '" width="216" height="28" rx="8"/>');
     o.push('<text class="axb" x="' + f(bx + 108) + '" y="' + f(by + 19) + '" text-anchor="middle" style="fill:' + main.color + '">' + label + '</text>');
     o.push('</g>');
   }
-  if (isToday && nowH >= h0 && nowH <= h1) {
-    o.push('<line x1="' + f(X(nowH)) + '" y1="' + T + '" x2="' + f(X(nowH)) + '" y2="' + B + '" stroke="#f59e0b" stroke-width="1.6" opacity=".85"/>');
-    o.push('<text class="axb" x="' + f(Math.min(X(nowH) + 7, R - 92)) + '" y="' + (B - 9) + '" style="fill:#d97706">现在 ' + hhmm(nowH) + '</text>');
-  }
+//  if (isToday && nowH >= h0 && nowH <= h1) {
+//    o.push('<line x1="' + f(X(nowH)) + '" y1="' + T + '" x2="' + f(X(nowH)) + '" y2="' + B + '" stroke="#f59e0b" stroke-width="1.6" opacity=".85"/>');
+//    o.push('<text class="axb" x="' + f(Math.min(X(nowH) + 7, R - 92)) + '" y="' + (B - 9) + '" style="fill:#d97706">现在 ' + hhmm(nowH) + '</text>');
+//  }
   if (!narrow || keys.length > 1) {
     keys.forEach((x, i) => {
       const gx = narrow ? L + 2 : R - 166, gy = T + (narrow ? 2 : 10) + i * 18;
