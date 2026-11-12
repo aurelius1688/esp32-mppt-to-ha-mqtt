@@ -1,7 +1,8 @@
 {
   "name": "mppt-bridge",
   "version": "1.0.0",
-  "description": "MPPT MQTT Bridge for Windows",
+  "author": "Aurelius1688 (晴若晓溪) <https://space.bilibili.com/362837623>",
+  "description": "基于初版框架深度重构，包含完整的安全加固、历史数据归档及 HA 自动发现。",
   "main": "server.js",
   "bin": "server.js",
   "scripts": {
