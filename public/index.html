@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="mppt-ui-build" content="2026-11-12-sec1">
-<title>MPPT</title>
+<meta name="mppt-ui-build" content="2026-11-13-stable">
+<title>晴若晓溪 MPPT</title>
 <link rel="icon" href="icon.ico">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <script>
@@ -77,7 +77,7 @@ html.light body::after{opacity:.5;background-image:linear-gradient(rgba(15,23,42
   transition:background .25s,border-color .25s;
 }
 html.light .header{background:linear-gradient(155deg,rgba(255,255,255,.92),rgba(255,255,255,.78))}
-.header-logo{text-decoration:none;color:inherit;display:flex;align-items:center;min-width:0;justify-self:start}
+.header > a{text-decoration:none;color:inherit;display:flex;align-items:center;min-width:0;justify-self:start}
 .header h1{font-size:17px;font-weight:700;line-height:1.2;letter-spacing:.2px;display:flex;align-items:center;gap:10px;white-space:nowrap;margin:0}
 .header h1 svg{width:26px;height:26px;flex-shrink:0;filter:drop-shadow(0 4px 14px rgba(66,232,198,.25))}
 .header-weather{
@@ -169,7 +169,7 @@ html.light .winseg{background:rgba(255,255,255,.6)}
 html.light .winseg button.on{color:#fff}
 .chip-sep{width:1px;height:18px;background:var(--line);margin:0 2px;align-self:center}
 .trend-chips{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
-.chip{border:1px solid var(--line);background:rgba(0,0,0,.2);color:var(--text);border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:600;cursor:pointer;transition:.18s;white-space:nowrap}
+.chip{border:1px solid var(--line);background:rgba(0,0,0,.2);color:var(--text);border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:600;cursor:pointer;transition:.18s;white-space:nowrap;font-family:inherit}
 html.light .chip{background:rgba(255,255,255,.6)}
 .chip:hover{border-color:var(--cyan);transform:translateY(-1px)}
 .chip.on{background:var(--cyan);border-color:var(--cyan);color:#06231d;box-shadow:0 4px 12px rgba(66,232,198,.3)}
@@ -303,7 +303,7 @@ html.light .test-result.fail{color:#b91c1c}
 /* ══ 响应式 ══ */
 @media(max-width:1100px){
   .header{grid-template-columns:1fr auto;grid-template-rows:auto auto}
-  .header > .header-logo{grid-column:1;grid-row:1}
+  .header > a{grid-column:1;grid-row:1}
   .header-actions{grid-column:2;grid-row:1}
   .header-weather{grid-column:1 / -1;grid-row:2;justify-self:center}
 }
@@ -317,7 +317,7 @@ html.light .test-result.fail{color:#b91c1c}
 @media(max-width:640px){
   :root{--gap:12px;--radius:16px;--radius-sm:12px;--chart-h:180px}
   .header{display:flex;flex-wrap:wrap;align-items:center;gap:10px 10px;padding:12px 14px}
-  .header > .header-logo{order:1;flex:1 1 auto;min-width:0}
+  .header > a{order:1;flex:1 1 auto;min-width:0}
   .header h1{font-size:15.5px;gap:8px}
   .header h1 svg{width:23px;height:23px}
   .header-actions{display:contents}
@@ -374,12 +374,12 @@ html.light .test-result.fail{color:#b91c1c}
 </head>
 <body>
 <div class="header">
-  <div class="header-logo">
+  <a href="https://space.bilibili.com/362837623" target="_blank">
     <h1>
       <svg viewBox="0 0 1024 1024" width="28" height="28"><path d="M863.973001 448.017999c-14.591544 0-27.007156 4.303866-36.942846 9.711697a317.190088 317.190088 0 0 0-18.911409-66.733915c6.367801-10.767664 14.655542-21.471329 24.687229-27.279147 35.102903-20.271367 52.270367 6.783788 99.132902-20.287366 25.103216-14.495547 38.254805-61.726071 23.423268-87.437268-103.05278 59.51814-115.996375-6.927784-170.55467 24.575232a76.573607 76.573607 0 0 0-27.023156 26.655167 321.829943 321.829943 0 0 0-49.838442-47.822505c0.095997-12.575607 1.903941-26.127184 7.743758-36.238868 20.271367-35.118903 48.65448-20.287366 75.709634-67.133902 14.495547-25.103216 2.271929-72.573732-23.423268-87.421268-59.502141 103.05278-103.932752 52.014375-135.419768 106.57267a76.733602 76.733602 0 0 0-10.063686 36.830849 316.950095 316.950095 0 0 0-67.021905-16.703478c-6.223806-10.959658-11.487641-23.567264-11.487641-35.278898 0-40.542733 31.999-41.886691 31.999-95.997C575.982001 35.022906 541.647074 0.016 511.984 0.016c0 119.004281-63.998 97.004969-63.998 160.010999 0 14.591544 4.303866 26.991157 9.695697 36.926846-23.167276 3.967876-45.534577 10.23968-66.717915 18.911409-10.767664-6.351802-21.471329-14.639543-27.263148-24.671229-20.271367-35.118903 6.767789-52.270367-20.287366-99.132902C328.917721 66.925909 281.687197 53.77432 255.992 68.605856c59.502141 103.05278-6.927784 116.012375 24.575232 170.57067a76.829599 76.829599 0 0 0 26.655167 27.023155 321.829943 321.829943 0 0 0-47.822505 49.838443c-12.591607-0.095997-26.127184-1.903941-36.238868-7.743758-35.118903-20.287366-20.271367-48.65448-67.133902-75.709634-25.119215-14.495547-72.605731-2.271929-87.437267 23.423268 103.05278 59.502141 51.998375 103.932752 106.55667 135.435767a76.7976 76.7976 0 0 0 36.846848 10.063686 317.910065 317.910065 0 0 0-16.703478 67.021905c-10.975657 6.223806-23.583263 11.487641-35.294897 11.487641-40.542733 0-41.870692-31.999-95.997-31.999-29.007094 0-63.998 34.318928-63.998 63.982001 118.988282 0 97.004969 64.014 159.995 64.014 14.591544 0 27.007156-4.303866 36.942846-9.711697 3.967876 23.167276 10.23968 45.518578 18.895409 66.701916-6.351802 10.767664-14.639543 21.487329-24.687228 27.295147-35.118903 20.271367-52.270367-6.783788-99.132902 20.287366-25.119215 14.479548-38.270804 61.726071-23.423268 87.405268 103.05278-59.502141 115.996375 6.927784 170.570669-24.575232a76.669604 76.669604 0 0 0 27.023156-26.639167 320.997969 320.997969 0 0 0 49.838442 47.806506c-0.111997 12.591607-1.903941 26.127184-7.743758 36.254867-20.271367 35.118903-48.65448 20.271367-75.709634 67.133902-14.495547 25.103216-2.271929 72.589732 23.423268 87.421268 59.502141-103.03678 103.932752-51.998375 135.419768-106.540671a76.845599 76.845599 0 0 0 10.063686-36.862848c21.375332 7.871754 43.758633 13.535577 67.005906 16.703478 6.223806 10.975657 11.503641 23.583263 11.50364 35.310897 0 40.542733-31.999 41.870692-31.999 95.997 0 29.007094 34.318928 63.998 63.998 63.998 0-119.004281 63.998-97.004969 63.998001-159.995 0-14.607544-4.303866-27.007156-9.711697-36.958845a318.246055 318.246055 0 0 0 66.717915-18.89541c10.767664 6.351802 21.487329 14.639543 27.279148 24.687229 20.271367 35.118903-6.767789 52.270367 20.287366 99.132902 14.495547 25.119215 61.726071 38.270804 87.421268 23.439267-59.502141-103.05278 6.927784-116.012375-24.575232-170.570669a76.701603 76.701603 0 0 0-26.655167-27.023156 321.829943 321.829943 0 0 0 47.822505-49.838442c12.575607 0.095997 26.127184 1.903941 36.238868 7.743758 35.118903 20.287366 20.271367 48.65448 67.133902 75.709634 25.119215 14.479548 72.589732 2.271929 87.437267-23.423268-103.05278-59.502141-51.998375-103.932752-106.55667-135.419768a76.605606 76.605606 0 0 0-36.846848-10.063686 318.006062 318.006062 0 0 0 16.703478-67.005906c10.975657-6.239805 23.583263-11.503641 35.294897-11.50364 40.542733 0 41.870692 31.999 95.997 31.999 29.007094 0 63.998-34.334927 63.998-63.998-118.988282 0-96.988969-63.998-159.995-63.998001z" fill="#FFCC66"/></svg>
-      MPPT
+      晴若晓溪 MPPT
     </h1>
-  </div>
+  </a>
   <div class="header-weather" id="headerWeather"></div>
   <div class="header-actions">
     <div class="status-bar">
@@ -398,16 +398,18 @@ html.light .test-result.fail{color:#b91c1c}
 <div class="container">
   <div class="cards" id="mainCards"></div>
 
+  <!-- 趋势图卡片 -->
   <div class="chart-box" style="margin-bottom:20px">
     <h3><i class="fas fa-chart-line" style="color:var(--orange)"></i> 趋势</h3>
     <div class="trend-head">
       <div class="trend-left">
         <select id="trendDate" class="trend-date" title="选择日期"></select>
         <div class="winseg" id="winSeg" title="选择时间范围">
-          <button data-win="1">1 小时</button>
+          <!-- 默认高亮 1 小时 -->
+          <button class="on" data-win="1">1 小时</button>
           <button data-win="6">6 小时</button>
           <button data-win="12">12 小时</button>
-          <button class="on" data-win="24">24 小时</button>
+          <button data-win="24">24 小时</button>
         </div>
       </div>
       <div class="trend-chips" id="metricChips">
@@ -424,10 +426,16 @@ html.light .test-result.fail{color:#b91c1c}
     <div class="trend-stats" id="trendStats"></div>
   </div>
 
+  <!-- 月度图卡片 -->
   <div class="chart-box" style="margin-bottom:20px">
     <h3><i class="fas fa-calendar-alt" style="color:var(--violet)"></i> <span id="monthTitle">近 7 天每日发电量</span></h3>
     <div class="trend-head">
-      <div class="trend-left"></div>
+      <div class="trend-left">
+        <!-- 新增：年度账单按钮 -->
+        <button class="chip" onclick="openYearlyReport()" style="background:rgba(66,232,198,.15);color:var(--cyan);border-color:var(--cyan);margin-left:0">
+          <i class="fas fa-chart-bar"></i> 年度发电账单
+        </button>
+      </div>
       <div class="trend-chips" id="monthChips">
         <button class="chip on" data-mstat="energy"><i style="background:#ffb45c"></i>发电量</button>
         <button class="chip" data-mstat="peak"><i style="background:#a78bfa"></i>峰值功率</button>
@@ -440,11 +448,13 @@ html.light .test-result.fail{color:#b91c1c}
     <div class="trend-stats" id="monthStats"></div>
   </div>
 
+  <!-- 信息卡片区 -->
   <div class="info-grid" id="infoGrid"></div>
 </div>
 
 <div id="toast" class="toast"></div>
 
+<!-- 登录模态框 -->
 <div id="loginOverlay" class="overlay">
   <div class="modal modal-sm">
     <h2><i class="fas fa-lock"></i> 管理员登录</h2>
@@ -460,6 +470,7 @@ html.light .test-result.fail{color:#b91c1c}
   </div>
 </div>
 
+<!-- 设置模态框 -->
 <div id="settingsOverlay" class="overlay">
   <div class="modal">
     <h2><i class="fas fa-cog"></i> 连接设置</h2>
@@ -477,6 +488,7 @@ html.light .test-result.fail{color:#b91c1c}
       <button id="testEspBtn" class="btn-secondary" onclick="testESP32()"><i class="fas fa-plug"></i> 测试连接</button>
       <div id="testEspResult" class="test-result"></div>
     </div>
+    
     <h3><i class="fas fa-server"></i> MQTT 服务器</h3>
     <div class="form-group">
       <label>服务器地址</label>
@@ -497,16 +509,18 @@ html.light .test-result.fail{color:#b91c1c}
       <input id="cfgInterval" type="number" placeholder="1000" min="1000">
       <div class="form-hint">建议 1000-5000ms</div>
     </div>
+    <div class="form-group">
+      <button id="testMqttBtn" class="btn-secondary" onclick="testMQTT()"><i class="fas fa-plug"></i> 测试连接</button>
+      <div id="testMqttResult" class="test-result"></div>
+    </div>
+
     <h3><i class="fas fa-cloud-sun"></i> 天气显示</h3>
     <div class="form-group">
       <label>城市代码（中国天气网，可选）</label>
       <input id="cfgWeatherCity" placeholder="留空则不显示天气">
       <div class="form-hint">9 位数字代码，在中国天气网查询你的城市；留空关闭天气显示</div>
     </div>
-    <div class="form-group">
-      <button id="testMqttBtn" class="btn-secondary" onclick="testMQTT()"><i class="fas fa-plug"></i> 测试连接</button>
-      <div id="testMqttResult" class="test-result"></div>
-    </div>
+    
     <h3><i class="fas fa-list"></i> 数据格式</h3>
     <div class="form-group">
       <label>CSV 字段格式</label>
@@ -517,6 +531,7 @@ html.light .test-result.fail{color:#b91c1c}
       </select>
       <div class="form-hint">功率/电流明显不合理时手动切换</div>
     </div>
+    
     <h3><i class="fas fa-key"></i> 管理密码</h3>
     <div class="form-group">
       <label>修改管理密码（留空不修改）</label>
@@ -525,6 +540,26 @@ html.light .test-result.fail{color:#b91c1c}
     <div class="btn-group">
       <button class="btn-primary" onclick="saveSettings()"><i class="fas fa-check"></i> 保存</button>
       <button class="btn-secondary" onclick="closeSettings()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 年度报表模态框 -->
+<div id="yearlyOverlay" class="overlay">
+  <div class="modal" style="max-width: 800px;">
+    <h2><i class="fas fa-chart-bar"></i> 年度发电账单</h2>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+      <p style="color:var(--muted);font-size:12px">每月总发电量 (kWh)</p>
+      <select id="yearSelect" class="trend-date" onchange="drawYearlyChart()"></select>
+    </div>
+    <svg class="trend-svg" id="yearlySvg" viewBox="0 0 800 300" style="width:100%;height:auto;background:rgba(0,0,0,.2);border-radius:12px;border:1px solid var(--line);cursor:default"></svg>
+    <div style="margin-top:15px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+      <div class="tstat" style="--c:#ffb45c"><div class="k">年度总发电</div><div class="v" id="yearTotal">--</div></div>
+      <div class="tstat" style="--c:#42e8c6"><div class="k">单月最高</div><div class="v" id="yearBestMonth">--</div></div>
+      <div class="tstat" style="--c:#63a8ff"><div class="k">单月平均</div><div class="v" id="yearAvg">--</div></div>
+    </div>
+    <div class="btn-group" style="margin-top:20px">
+      <button class="btn-secondary" onclick="document.getElementById('yearlyOverlay').classList.remove('open')">关闭</button>
     </div>
   </div>
 </div>
@@ -686,7 +721,7 @@ function updateInfo(d) {
   setHTML('bypass', d.bypass === 1 ? '<span class="badge on">打开</span>' : '<span class="badge off">关闭</span>');
   setText('reset', d.reset == null ? '-' : String(d.reset));
 
-  /* --- 电能统计（详细显示） --- */
+  // 硬件原生电量读取
   setText('wh',      (num(d.wh)  !== null ? (num(d.wh)  / 1000).toFixed(3) : '0.000') + ' kWh');
   setText('twh',     (num(d.twh) !== null ? (num(d.twh) / 1000).toFixed(3) : '0.000') + ' kWh');
   setText('vin_max', (Number(d.vin_max) || 0).toFixed(2) + ' V');
@@ -737,7 +772,7 @@ function renderWeather(d) {
 }
 
 /* ══════════ 趋势图 ══════════ */
-let histPoints = [], histPeaks = {}, histDate = '', curMetric = 'pin', curDay = '', curWin = 24;
+let histPoints = [], histPeaks = {}, histDate = '', curMetric = 'pin', curDay = '', curWin = 1; // 默认选中1小时
 function hourOf(t){ return ((Number(t)/3600000 + 8) % 24 + 24) % 24; }
 function hhmmToHour(v){ const m = /^(\d{1,2}):(\d{2})$/.exec(String(v||'')); return m ? Number(m[1])+Number(m[2])/60 : null; }
 function seriesFor(k){
@@ -798,9 +833,9 @@ function drawTrend(k){
   }
   const inWin = p => p.h >= h0 - 1e-9 && p.h <= h1 + 1e-9;
   const ptsMap = {}; keys.forEach(x => ptsMap[x] = seriesFor(x).filter(inWin));
-  const outWin = seriesFor('pout').filter(inWin); // 仅用于算发电量，不参与 Y 轴计算
+  const outWin = seriesFor('pout').filter(inWin); // 仅用于算发电量
   
-  // 获取峰值并计算合理的 Y 轴上限，仅取当前选中指标的数值
+  // 只取当前选中指标的数值来计算 Y 轴，防止被其他大数值压扁
   const pk = peakIn(ptsMap[keys[0]] || []);
   const allVals = keys.flatMap(x => ptsMap[x].map(p => p.v));
   let baseMax = allVals.length ? Math.max.apply(null, allVals) : 0;
@@ -986,6 +1021,8 @@ const MSTAT = {
   peak:   { label: '峰值功率', unit: 'W', dec: 0, color: '#a78bfa' },
 };
 function mval(d, m){ return m === 'peak' ? (Number(d.peakW) || 0) : (Number(d.energyKwh) || 0); }
+
+let longTermStats = {};
 async function fetchMonthly(){
   try {
     const r = await fetch('/api/monthly?days=' + curRange);
@@ -993,9 +1030,11 @@ async function fetchMonthly(){
     if (!j.ok) return;
     monthDays = Array.isArray(j.days) ? j.days : [];
     monthStats = j.stats || null;
+    longTermStats = j.longTerm || {}; // 接收年度账单数据
     drawMonth(curMStat);
   } catch (e) { console.warn('[月统计] 拉取失败', e.message); }
 }
+
 function drawMonth(m){
   const svg = $('monthSvg'), stats = $('monthStats');
   if (!svg) return;
@@ -1125,7 +1164,73 @@ function monthHover(ev){
   svg.querySelectorAll('.mbar').forEach(el => el.classList.toggle('dim', el.getAttribute('data-i') !== String(i)));
 }
 
-/* ══════════ 交互 ══════════ */
+/* ══════════ 年度账单功能 ══════════ */
+function openYearlyReport() {
+  const overlay = document.getElementById('yearlyOverlay');
+  overlay.classList.add('open');
+  
+  // 从 longTermStats 提取年份
+  const years = new Set();
+  years.add(new Date().getFullYear().toString());
+  Object.keys(longTermStats).forEach(k => years.add(k.slice(0, 4)));
+  
+  const sortedYears = Array.from(years).sort((a, b) => b - a);
+  const sel = document.getElementById('yearSelect');
+  sel.innerHTML = sortedYears.map(y => `<option value="${y}">${y} 年</option>`).join('');
+  sel.value = sortedYears[0];
+  
+  drawYearlyChart();
+}
+
+function drawYearlyChart() {
+  const year = document.getElementById('yearSelect').value;
+  const svg = document.getElementById('yearlySvg');
+  const W = 800, H = 300, L = 50, R = W - 20, T = 30, B = H - 40;
+  const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  
+  const vals = months.map((_, i) => {
+    const key = `${year}-${String(i + 1).padStart(2, '0')}`;
+    return parseFloat((longTermStats[key] || 0).toFixed(2));
+  });
+
+  const maxVal = Math.max(...vals, 10);
+  const step = niceStep(maxVal / 4);
+  const yMax = step * 4;
+  const Y = v => B - (v / yMax) * (B - T);
+  const slot = (R - L) / 12;
+  const bw = slot * 0.6;
+  const Xc = i => L + slot * i + slot / 2;
+  
+  const o = [];
+  for (let i = 0; i <= 4; i++) {
+    const v = step * i, y = Y(v);
+    o.push(`<line x1="${L}" y1="${y}" x2="${R}" y2="${y}" stroke="var(--line)" stroke-dasharray="4 4"/>`);
+    o.push(`<text x="${L-10}" y="${y+4}" fill="var(--muted)" font-size="12" text-anchor="end">${v.toFixed(0)}</text>`);
+  }
+
+  let total = 0, best = 0, bestMonth = '';
+  vals.forEach((v, i) => {
+    total += v;
+    if (v > best) { best = v; bestMonth = months[i]; }
+    const x = Xc(i) - bw / 2;
+    const y = Y(v);
+    const h = B - y;
+    if (v > 0) {
+      o.push(`<rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="4" fill="url(#yearlyGrad)"/>`);
+      o.push(`<text x="${Xc(i)}" y="${y-8}" fill="var(--orange)" font-size="12" font-weight="bold" text-anchor="middle">${v.toFixed(1)}</text>`);
+    }
+    o.push(`<text x="${Xc(i)}" y="${B+20}" fill="var(--muted)" font-size="12" text-anchor="middle">${months[i]}</text>`);
+  });
+
+  document.getElementById('yearTotal').innerHTML = total.toFixed(1) + '<small>kWh</small>';
+  document.getElementById('yearBestMonth').innerHTML = bestMonth + ' ' + best.toFixed(1) + '<small>kWh</small>';
+  document.getElementById('yearAvg').innerHTML = (total / 12).toFixed(1) + '<small>kWh</small>';
+
+  o.unshift(`<defs><linearGradient id="yearlyGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--orange)"/><stop offset="100%" stop-color="rgba(255,180,92,.1)"/></linearGradient></defs>`);
+  svg.innerHTML = o.join('');
+}
+
+/* ══════════ 交互与设置 ══════════ */
 document.querySelectorAll('#monthChips [data-mstat]').forEach(btn => {
   btn.addEventListener('click', () => {
     curMStat = btn.dataset.mstat;
@@ -1294,19 +1399,16 @@ fetchMonthly();
 setInterval(() => { if (!curDay || curDay === trendToday()) fetchHistory(); }, 60000);
 setInterval(fetchMonthly, 60000);
 connectSSE();
-</script>
 
-<script>
-(function(){
-  const KEY = 'mppt-theme';
-  const btn = document.getElementById('themeToggle');
-  if (!btn) return;
-  btn.addEventListener('click', function(){
+// 主题切换逻辑 (用于重绘图表以适配深/浅色)
+const themeBtn = $('themeToggle');
+if (themeBtn) {
+  themeBtn.addEventListener('click', function(){
     const isLight = document.documentElement.classList.toggle('light');
-    try { localStorage.setItem(KEY, isLight ? 'light' : 'dark'); } catch(e){}
-    requestAnimationFrame(function(){ drawTrend(curMetric); drawMonth(curMStat); });
+    try { localStorage.setItem('mppt-theme', isLight ? 'light' : 'dark'); } catch(e){}
+    requestAnimationFrame(function(){ drawTrend(curMetric); drawMonth(curMStat); if($('yearlyOverlay').classList.contains('open')) drawYearlyChart(); });
   });
-})();
+}
 </script>
 </body>
 </html>
