@@ -1,4 +1,6 @@
+//新版本由lcss添加新功能,欢迎体验!
 // 容器 / NAS 内默认无时区设置，先固定为北京时间，保证「每日发电量」在 0 点归零。
+
 process.env.TZ = process.env.TZ || 'Asia/Shanghai';
 
 const express = require('express');
