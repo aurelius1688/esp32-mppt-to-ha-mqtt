@@ -1,7 +1,7 @@
 // ============================================================================
-// MPPT 太阳能控制器 - MQTT 桥接服务 (修复 HA 设备类 + 硬件原生电量)
+// MPPT 太阳能控制器 - MQTT 桥接服务 (完美稳定版 + 年度账单)
 // ============================================================================
-//部分代码改善于lcss
+
 process.env.TZ = process.env.TZ || 'Asia/Shanghai';
 
 const express = require('express');
@@ -16,6 +16,7 @@ const EXE_DIR = isPkg ? path.dirname(process.execPath) : __dirname;
 const DATA_DIR = process.env.DATA_DIR || path.join(EXE_DIR, 'data');
 const CONFIG_PATH = path.join(DATA_DIR, 'config.json');
 const KEY_PATH = path.join(DATA_DIR, 'enc.key');
+const MONTHLY_PATH = path.join(DATA_DIR, 'monthly_stats.json'); // [新增] 月度账本
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const PORT = Number(process.env.PORT) || 18080;
 const BUILD_ID = '2026-11-13-stable';
@@ -165,21 +166,30 @@ function saveConfig() {
 }
 if (firstRun) saveConfig();
 
-// ── [修复] HA 自动发现配置：删除了非法的 device_class ──
+// ── [新增] 年度账单数据加载 ──
+let MONTHLY_STATS = {};
+try {
+  if (fs.existsSync(MONTHLY_PATH)) MONTHLY_STATS = JSON.parse(fs.readFileSync(MONTHLY_PATH, 'utf8'));
+} catch (e) { console.error('[月度数据] 加载失败:', e.message); }
+function saveMonthlyStats() {
+  try { fs.writeFileSync(MONTHLY_PATH, JSON.stringify(MONTHLY_STATS, null, 2), 'utf8'); } catch (e) {}
+}
+
+// ── HA 自动发现配置 ──
 const SENSORS = [
   { key:'cpu_temp',  name:'CPU温度', unit:'°C', icon:'mdi:thermometer', cls:'temperature' },
   { key:'temp',      name:'温度', unit:'°C', icon:'mdi:thermometer', cls:'temperature' },
-  { key:'eff',       name:'效率', unit:'%', icon:'mdi:percent' }, // 移除 cls
+  { key:'eff',       name:'效率', unit:'%', icon:'mdi:percent' },
   { key:'pin',       name:'输入功率', unit:'W', icon:'mdi:flash-outline', cls:'power' },
   { key:'vin',       name:'输入电压', unit:'V', icon:'mdi:flash', cls:'voltage' },
   { key:'iin',       name:'输入电流', unit:'A', icon:'mdi:current-ac', cls:'current' },
   { key:'pout',      name:'输出功率', unit:'W', icon:'mdi:flash-outline', cls:'power' },
   { key:'vout',      name:'输出电压', unit:'V', icon:'mdi:battery', cls:'voltage' },
   { key:'iout',      name:'输出电流', unit:'A', icon:'mdi:current-ac', cls:'current' },
-  { key:'loop',      name:'循环耗时', unit:'ms', icon:'mdi:timer-sand' }, // 移除 cls
+  { key:'loop',      name:'循环耗时', unit:'ms', icon:'mdi:timer-sand' },
   { key:'vin_max',   name:'最大输入电压', unit:'V', icon:'mdi:flash', cls:'voltage' },
-  { key:'pwm',       name:'PWM', unit:'', icon:'mdi:sine-wave' }, // 移除 cls
-  { key:'ppwm',      name:'PPWM', unit:'', icon:'mdi:sine-wave' }, // 移除 cls
+  { key:'pwm',       name:'PWM', unit:'', icon:'mdi:sine-wave' },
+  { key:'ppwm',      name:'PPWM', unit:'', icon:'mdi:sine-wave' },
   { key:'wh',        name:'本次电量', unit:'Wh', icon:'mdi:lightning-bolt', cls:'energy' },
   { key:'twh',       name:'累计电量', unit:'Wh', icon:'mdi:lightning-bolt-outline', cls:'energy' },
   { key:'energy_daily',  name:'每日发电量', unit:'kWh', icon:'mdi:solar-power', cls:'energy', state_cls: 'total' },
@@ -234,7 +244,7 @@ function publishDiscovery() {
     mqttClient.publish(`${CFG.haPrefix}/sensor/mppt_${s.key}/config`, JSON.stringify({
       name: `MPPT ${s.name}`, state_topic: CFG.stateTopic, unit_of_measurement: s.unit,
       value_template: `{{ value_json.${s.key} }}`, unique_id: `mppt_${s.key}`,
-      ...(s.cls ? { device_class: s.cls } : {}), // [修复] 只有在定义了合法 cls 时才下发 device_class
+      ...(s.cls ? { device_class: s.cls } : {}),
       icon: s.icon, state_class: s.state_cls || 'measurement',
       ...avail, device: dev
     }), { retain: true });
@@ -386,6 +396,12 @@ function checkDayReset() {
   const d = todayStr();
   if (CFG.energyDate && CFG.energyDate !== d) {
     console.log(`[电量] 跨天结算: ${CFG.energyDate} -> ${d}`);
+    
+    // [新增] 将昨天的电量存入月账本 (取昨天的年月，防止月初第一天算错)
+    const yMonth = CFG.energyDate.slice(0, 7);
+    MONTHLY_STATS[yMonth] = (MONTHLY_STATS[yMonth] || 0) + (CFG.energyDailyWh / 1000);
+    saveMonthlyStats();
+    
     CFG.energyYesterdayWh = CFG.energyDailyWh;
     CFG.energyDailyWh = 0;
     CFG.energyDate = d;
@@ -535,10 +551,17 @@ app.get('/api/history', (req, res) => {
   res.json({ ok: true, date: day, metrics: HISTORY_KEYS, points, peaks, energyKwh: parseFloat(energyKwh.toFixed(6)) });
 });
 app.get('/api/weather', (req, res) => res.json(weatherData || { error: '暂无数据' }));
+
+// [新增] 返回月账本数据，同时把今天未结算的电量加进去，保证前端实时图表正确
 app.get('/api/monthly', (req, res) => {
   const days = Math.max(1, Math.min(HISTORY_KEEP_DAYS, parseInt(req.query.days, 10) || HISTORY_KEEP_DAYS));
   const rows = dailyRows(days); flushHistory(false);
-  res.json({ ok: true, days: rows, stats: dailyStats(rows) });
+  
+  const displayLongTerm = { ...MONTHLY_STATS };
+  const currentMonth = todayStr().slice(0, 7);
+  displayLongTerm[currentMonth] = (displayLongTerm[currentMonth] || 0) + (CFG.energyDailyWh / 1000);
+  
+  res.json({ ok: true, days: rows, stats: dailyStats(rows), longTerm: displayLongTerm });
 });
 
 app.get('/api/settings', requireAuth, (req, res) => res.json({
@@ -640,7 +663,7 @@ startWeather();
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`[版本] 服务端 ${BUILD_ID} / 面板 ${UI_BUILD}`);
-  console.log(`\n=== MPPT MQTT Bridge（修复 HA 设备类版）===`);
+  console.log(`\n=== MPPT MQTT Bridge（完美稳定版 + 年度账单）===`);
   console.log(`Web 面板: http://localhost:${PORT}`);
   console.log(`MQTT:     ${CFG.mqttUrl} -> ${CFG.stateTopic}`);
   console.log(`ESP32:    ${CFG.esp32Url}  轮询 ${CFG.interval}ms`);
