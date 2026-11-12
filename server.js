@@ -9,7 +9,7 @@ const crypto = require('crypto');
 // [安全] 已删除 Blynk 硬件协议依赖：const net = require('net'); const tls = require('tls');
 
 // ── 运行路径
-const PORT = Number(process.env.PORT) || 4088;
+const PORT = Number(process.env.PORT) || 18080;
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const CONFIG_PATH = path.join(DATA_DIR, 'config.json');
 const KEY_PATH = path.join(DATA_DIR, 'enc.key');   // [安全] 密钥独立文件，权限 0600
