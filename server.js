@@ -8,7 +8,7 @@ const path = require('path');
 const crypto = require('crypto');
 // [安全] 已删除 Blynk 硬件协议依赖：const net = require('net'); const tls = require('tls');
 
-// ── 运行路径（飞牛部署时通过卷挂载 /app/data 持久化）──
+// ── 运行路径
 const PORT = Number(process.env.PORT) || 4088;
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const CONFIG_PATH = path.join(DATA_DIR, 'config.json');
@@ -1119,8 +1119,8 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 
 const srv = app.listen(PORT, '0.0.0.0', () => {
   console.log(`[版本] 服务端 ${BUILD_ID} / 面板 ${UI_BUILD} / 匹配=${UI_BUILD === BUILD_ID}`);
-  console.log(`\n=== MPPT MQTT Bridge（飞牛 / Linux 版 · 安全加固）===`);
-  console.log(`Web 面板: http://<飞牛IP>:${PORT}`);
+  console.log(`\n=== MPPT MQTT Bridge（Linux 版 · 安全加固）===`);
+  console.log(`Web 面板: http://<IP>:${PORT}`);
   console.log(`MQTT:     ${CFG.mqttUrl} -> ${CFG.stateTopic}`);
   console.log(`ESP32:    ${CFG.esp32Url}  轮询 ${CFG.interval}ms  CSV格式 ${CFG.csvFormat}`);
   console.log(`配置目录: ${DATA_DIR}`);
