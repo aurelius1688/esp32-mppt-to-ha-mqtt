@@ -1119,15 +1119,16 @@ function drawMonth(m){
     o.push('<line class="mavg" x1="' + L + '" y1="' + f(ay) + '" x2="' + R + '" y2="' + f(ay) + '"/>');
     if (!narrow) o.push('<text class="ax" x="' + (L + 4) + '" y="' + f(ay - 8) + '" style="fill:var(--muted)">日均 ' + avg.toFixed(cf.dec) + ' ' + cf.unit + '</text>');
   }
-  let bi = -1;
-  vals.forEach((v, i) => { if (!monthDays[i].empty && (bi < 0 || v > vals[bi])) bi = i; });
-  const marks = [];
-  if (bi >= 0) marks.push(bi);
-  if (today >= 0 && (bi < 0 || Math.abs(today - bi) * slot >= 36)) marks.push(today);
-  marks.forEach(i => {
-    if (i < 0 || monthDays[i].empty) return;
-    const v = vals[i], ty = Math.max(T + 12, Y(v) - 9);
-    o.push('<text class="mvaltext" x="' + f(Xc(i)) + '" y="' + f(ty) + '" text-anchor="middle">' + v.toFixed(cf.dec) + '</text>');
+  // 遍历每一天，只要有发电量（>0），就在柱子上显示数值
+  monthDays.forEach((d, i) => {
+    const v = vals[i];
+    if (d.empty || v <= 0) return; 
+    const ty = Math.max(T + 12, Y(v) - 9);
+    
+    // 如果是 30 天视图（柱子很密），稍微把数字字号调小一点，防止重叠
+    const fontSize = n > 14 ? '10px' : '11.5px';
+    
+    o.push('<text class="mvaltext" x="' + f(Xc(i)) + '" y="' + f(ty) + '" style="font-size:' + fontSize + '" text-anchor="middle">' + v.toFixed(cf.dec) + '</text>');
   });
   const gap = n <= 10 ? 1 : (narrow ? 10 : 5);
   monthDays.forEach((d, i) => {
