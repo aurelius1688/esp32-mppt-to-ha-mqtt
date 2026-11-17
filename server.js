@@ -503,12 +503,20 @@ function isAllowedTargetUrl(input, current) {
   if (norm(input) === norm(current)) return true;
   try {
     const u = new URL(input);
-    if (!['http:', 'https:', 'mqtt:', 'mqtts:'].includes(u.protocol)) return false;
-    if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return true;
-    const m = u.hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+    if (!['http:', 'https:', 'mqtt:', 'mqtts:', 'ws:', 'wss:'].includes(u.protocol)) return false;
+    const host = u.hostname;
+    
+    // 允许 localhost
+    if (host === 'localhost' || host === '127.0.0.1') return true;
+    
+    // 如果是 IPv4，只允许内网私有地址
+    const m = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
     if (m) { const x = parseInt(m[1]), y = parseInt(m[2]); return x === 10 || (x === 172 && y >= 16 && y <= 31) || (x === 192 && y === 168); }
+    
+    // [修改点] 如果不是 IPv4，说明是域名（如 rlwy.net）或 IPv6。直接放行！
+    // 因为 admin 已经登录了，允许连接外部公网 MQTT 服务器是合理需求
+    return true; 
   } catch { return false; }
-  return false;
 }
 
 // ── Web 服务器 ──
