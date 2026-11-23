@@ -14,6 +14,7 @@
   - 包含设备离线检测（LWT 遗嘱消息），实体掉线自动变灰。
   - 支持在 HA 中一键重启 ESP32（带有随机 Payload 防伪造机制）。
   - 发电量支持 `total_increasing`，完美接入 HA 能源面板。
+<img width="1884" height="820" alt="Snipaste_2026-11-23_16-57-40" src="https://github.com/user-attachments/assets/da34d517-3db4-425c-a049-b868929c5787" />
 
 ## 🚀 快速开始
 
